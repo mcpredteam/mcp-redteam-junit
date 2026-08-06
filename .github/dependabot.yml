@@ -1,0 +1,58 @@
+version: 2
+
+updates:
+  # GitHub Actions. The only dependencies this repo actually accumulates: ci.yml
+  # pins checkout, setup-java and upload-artifact, and those go stale quietly
+  # until a deprecation warning appears on every run.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      # Matches the repo's commit style: one imperative sentence, no prefix.
+      prefix: Update
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # Maven, root reactor. Holds the junit-bom and plugin versions.
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: Update
+    groups:
+      junit:
+        patterns:
+          - "org.junit*"
+
+  # mcp-redteam-core has zero dependencies and CONTRIBUTING.md says it stays that
+  # way. Watched anyway: if a PR ever adds one, Dependabot noticing it here is a
+  # second signal that the zero-dependency rule slipped.
+  - package-ecosystem: maven
+    directory: /mcp-redteam-core
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: Update
+
+  - package-ecosystem: maven
+    directory: /mcp-redteam-junit
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: Update
+    groups:
+      junit:
+        patterns:
+          - "org.junit*"
