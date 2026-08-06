@@ -1,0 +1,11 @@
+target/
+.idea/
+*.iml
+.DS_Store
+
+# Working notes. Kept local deliberately: competitive landscape (names peers' adoption
+# numbers), implementation roadmap (effort estimates), references (editorial notes to self),
+# and the original strategy draft. Useful for development, wrong to publish — the conclusions
+# that belong to users live in docs/ and README.md instead.
+.claude/
+

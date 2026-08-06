@@ -1,0 +1,53 @@
+name: Bug report
+description: Something behaves incorrectly, crashes, or contradicts the docs
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Not here:** a payload the scanner *should* have caught and didn't. That is a
+        detection bypass and goes through a [private advisory](https://github.com/harikrishna8121999/mcp-redteam-junit/security/advisories/new).
+
+        A finding on honest tool metadata is a **false positive** — use that template instead.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: And what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: >-
+        The smallest failing JUnit test, or the `ToolDefinition` and scanner setup that
+        triggers it. Redact anything sensitive before pasting.
+      render: java
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Actual output
+      description: Failure message, stack trace, or the `ScanReport` you got.
+      render: text
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: 0.1.0-SNAPSHOT, or a commit SHA
+    validations:
+      required: true
+
+  - type: input
+    id: java
+    attributes:
+      label: JDK and build tool
+      placeholder: Temurin 21.0.5, Maven 3.9.9
+    validations:
+      required: true

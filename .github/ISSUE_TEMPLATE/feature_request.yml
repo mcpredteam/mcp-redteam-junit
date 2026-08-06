@@ -1,0 +1,56 @@
+name: Feature request
+description: Propose a rule, a capability, or a change in direction
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please skim the **Scope** section of
+        [CONTRIBUTING.md](https://github.com/harikrishna8121999/mcp-redteam-junit/blob/main/CONTRIBUTING.md)
+        first. Runtime guardrails, generic LLM red teaming, a new threat taxonomy, and
+        dependencies in `mcp-redteam-core` are all deliberately out of scope — an issue is
+        still welcome, but expect that conversation.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What can't you do today? Concrete situations beat abstract capability gaps.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you're proposing
+      description: Sketch the API or the rule if you have one in mind.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - New detection rule or signature
+        - Assertion / API ergonomics
+        - Report format or output
+        - Framework harness (Spring AI, LangChain4j, …)
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: owasp
+    attributes:
+      label: OWASP MCP Top 10 category
+      description: For a detection rule. Existing categories only — the taxonomy is not extended.
+      placeholder: MCP03 Tool Poisoning
+
+  - type: checkboxes
+    id: willing
+    attributes:
+      label: Participation
+      options:
+        - label: I'd be willing to open a PR for this

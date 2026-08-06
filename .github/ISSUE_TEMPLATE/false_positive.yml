@@ -1,0 +1,58 @@
+name: False positive
+description: A rule fired on honest tool metadata
+labels: [false-positive]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        These matter. A scanner teams have muted is a scanner that is not running when a real
+        poisoned tool arrives — so a false positive is treated as a defect, not a tuning
+        preference.
+
+        If the metadata is safe to share, this issue can usually become a permanent
+        `BenignToolFixtures` entry that stops the regression from coming back.
+
+  - type: textarea
+    id: metadata
+    attributes:
+      label: The tool metadata that triggered it
+      description: >-
+        Name, description and relevant schema. Redact anything internal — a minimized version
+        that still triggers the finding is ideal.
+      render: json
+    validations:
+      required: true
+
+  - type: input
+    id: rule
+    attributes:
+      label: Rule id
+      placeholder: MCPRT-EXF-002
+    validations:
+      required: true
+
+  - type: textarea
+    id: finding
+    attributes:
+      label: The finding
+      description: Paste it including severity, confidence, location and matched text.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: why-benign
+    attributes:
+      label: Why this tool is legitimate
+      description: >-
+        What the tool actually does, and why the matched text appears in it in its ordinary
+        sense.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: fixture
+    attributes:
+      label: Fixture
+      options:
+        - label: This metadata can be added to `BenignToolFixtures` as a public test fixture
