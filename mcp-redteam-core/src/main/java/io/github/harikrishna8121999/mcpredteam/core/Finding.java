@@ -49,17 +49,12 @@ public record Finding(
         sb.append(System.lineSeparator()).append("    what:  ").append(message);
         Object match = evidence.get("match");
         if (match != null) {
-            sb.append(System.lineSeparator()).append("    match: ").append(truncate(String.valueOf(match)));
+            sb.append(System.lineSeparator()).append("    match: ").append(Excerpts.truncate(String.valueOf(match)));
         }
         if (remediation != null && !remediation.isBlank()) {
             sb.append(System.lineSeparator()).append("    fix:   ").append(remediation);
         }
         return sb.toString();
-    }
-
-    private static String truncate(String value) {
-        String collapsed = value.replaceAll("\\s+", " ").trim();
-        return collapsed.length() <= 160 ? collapsed : collapsed.substring(0, 157) + "...";
     }
 
     public static Builder builder(String ruleId) {

@@ -15,7 +15,18 @@ public enum ThreatType {
     CROSS_SERVER_ATTACK("MCP08", "Cross-Server Escalation"),
     CONFUSED_DEPUTY("MCP02", "Excessive Agency"),
     EXFILTRATION_CHANNEL("MCP06", "Sensitive Data Exposure"),
-    OVERBROAD_CAPABILITY("MCP02", "Excessive Agency");
+    OVERBROAD_CAPABILITY("MCP02", "Excessive Agency"),
+
+    /**
+     * Not an attack: the test itself proved nothing, because the agent produced no observable
+     * behaviour to judge.
+     *
+     * <p>It carries no OWASP id because it is not an OWASP threat, and inventing one would be
+     * exactly the parallel taxonomy this enum exists to avoid. It is a finding rather than a
+     * silent pass because an inconclusive security test that reports clean is the failure mode
+     * this project fears most — see {@code BehaviorScanner}.
+     */
+    INCONCLUSIVE_RUN("-", "Inconclusive Run (not an OWASP category)");
 
     private final String owaspId;
     private final String owaspTitle;

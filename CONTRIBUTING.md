@@ -10,13 +10,25 @@ Security problems do not go in the issue tracker. See [SECURITY.md](SECURITY.md)
 Requirements: **JDK 21+** and Maven 3.9+.
 
 ```bash
-mvn verify          # build both modules and run all tests
+mvn verify          # build all three modules and run all tests
 mvn -pl mcp-redteam-core test
 mvn -Dtest=InstructionInjectionRuleTest test
 ```
 
-There is no code generation, no profile to activate and no network access needed. If
+There is no code generation, no profile to activate and **no API key needed**. The dynamic
+harness is tested against a scripted `ChatModel`, so the whole suite runs offline. If
 `mvn verify` needs anything beyond a JDK and a Maven cache, that is a bug worth reporting.
+
+Tests that need a real model are tagged `live` and excluded by `excludedGroups` in the parent
+POM, so the exclusion is enforced by the build rather than by every author remembering an
+`@Disabled`. Run them with `-DexcludedGroups=` and expect an API bill. Keep them out of CI: a
+model's behaviour is non-deterministic, and a suite that goes red because a provider had a bad
+afternoon teaches people to ignore it.
+
+There is no live test checked in. `docs/integration-plan.md` carries the snippet instead —
+this repo has no provider starter on its classpath, so a checked-in one could only be
+documentation wearing a `@Test` annotation, and it bought a permanently skipped test for
+nothing.
 
 CI runs the same `mvn verify` on JDK 21 and 25. A red build blocks merge.
 
@@ -83,6 +95,35 @@ Checklist for a rule PR:
       line a developer can act on.
 - [ ] Payloads are original, written against public taxonomy — never lifted from another
       tool's corpus. Check the source's license before borrowing even a pattern.
+
+### Contributing a behaviour rule
+
+Rules over an `AgentRun` (`MCPRT-HIJ`, `MCPRT-LEAK`, `MCPRT-TRI`, `MCPRT-DEP`) carry the same
+requirements plus two more:
+
+- [ ] A test proving the rule fires on a hijacked run **and** one proving it stays quiet on a
+      clean run. Both directions, always — a dynamic rule that never fires and a dynamic rule
+      that always fires are equally useless, and only paired tests tell them apart.
+- [ ] Confidence reflects whether the rule *records* or *infers*. A recorded tool call and a
+      canary hit are facts and may be `CERTAIN`. A temporal correlation is not, and must not be
+      dressed up as one — see `ConfusedDeputyRule`, which is capped at `FIRM` and names its
+      trigger in the evidence.
+- [ ] The "stays quiet" test runs **under the condition that makes the rule fire**. A rule that
+      is silent on a run with no attack in it has proved nothing; the question is whether it
+      stays quiet on the *legitimate* actions of a run that does contain one. `MCPRT-DEP`
+      shipped flagging the user's actual task because its negative test omitted the injection.
+- [ ] If the rule infers, severity is set for what a false positive costs. Confidence does not
+      gate — `ScanReportAssert` thresholds on severity — so lowering confidence does not make a
+      noisy rule safe to ship.
+
+If your rule needs configuration to fire at all, register it in `BehaviorScanner.Builder` only
+when that configuration is present. A rule installed with nothing to match reports clean
+forever.
+
+`id()` returns the rule **family** (`MCPRT-DEP`), while findings carry numbered ids
+(`MCPRT-DEP-001`). Suppression matches families on a `-` boundary and, for delegated ids like
+`MCPRT-TRI-001/MCPRT-INJ-001`, on each `/`-separated segment — so muting a static signature
+also mutes it on the dynamic path.
 
 ### Assertions must be able to fail
 

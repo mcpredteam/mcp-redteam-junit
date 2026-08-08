@@ -87,8 +87,15 @@ normalized text, so splicing invisible characters into a payload does not defeat
 - **Spring AI reference documentation** — https://docs.spring.io/spring-ai/reference/
 - **Spring AI observability** — https://docs.spring.io/spring-ai/reference/observability/index.html
 
-  The tool-calling loop is part of the advisor chain, which is the supported interception point
-  for the planned dynamic harness — see [integration-plan.md](integration-plan.md).
+  Built against **2.0.0**. The interception point is `org.springframework.ai.tool.ToolCallback`,
+  whose `call(String toolInput)` receives the tool input as the model produced it. Both that
+  overload and `call(String, ToolContext)` are decorated: MCP-backed callbacks are invoked
+  through the latter.
+
+  Two behaviours worth verifying against the jar rather than the prose, because this project
+  got one of them wrong: there is no `ToolCallObservingAdvisor` in 2.0.0, and the tool-calling
+  loop engages only when `ChatModel#getOptions()` yields a `ToolCallingChatOptions`. See
+  [integration-plan.md](integration-plan.md).
 
 - **Spring AI MCP Security** — https://github.com/spring-ai-community/mcp-security
 

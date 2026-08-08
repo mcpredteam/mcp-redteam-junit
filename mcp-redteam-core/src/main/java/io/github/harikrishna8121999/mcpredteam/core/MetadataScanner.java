@@ -1,5 +1,6 @@
 package io.github.harikrishna8121999.mcpredteam.core;
 
+import io.github.harikrishna8121999.mcpredteam.core.rule.CredentialParameterRule;
 import io.github.harikrishna8121999.mcpredteam.core.rule.DestructiveCapabilityRule;
 import io.github.harikrishna8121999.mcpredteam.core.rule.EncodedPayloadRule;
 import io.github.harikrishna8121999.mcpredteam.core.rule.ExfiltrationChannelRule;
@@ -49,6 +50,7 @@ public final class MetadataScanner implements McpSecurityScanner {
                 new HiddenUnicodeRule(),
                 new EncodedPayloadRule(),
                 new ExfiltrationChannelRule(),
+                new CredentialParameterRule(),
                 new ToolShadowingRule(),
                 new DestructiveCapabilityRule());
     }
@@ -75,12 +77,17 @@ public final class MetadataScanner implements McpSecurityScanner {
         return new ScanReport(started, Instant.now(), safeTools.size(), new ArrayList<>(deduped.values()));
     }
 
-    /** Matches either an exact rule id ({@code MCPRT-INJ-008}) or a rule family ({@code MCPRT-INJ}). */
+    /**
+     * Matches either an exact rule id ({@code MCPRT-INJ-008}) or a rule family
+     * ({@code MCPRT-INJ}).
+     *
+     * <p>A family matches only on a {@code -} boundary. Plain prefix matching meant
+     * {@code suppress("M")} silenced every rule in the scanner, which is a very quiet way to
+     * turn a security tool off.
+     */
     private boolean isSuppressed(String ruleId) {
-        if (suppressedRuleIds.contains(ruleId)) {
-            return true;
-        }
-        return suppressedRuleIds.stream().anyMatch(ruleId::startsWith);
+        return suppressedRuleIds.stream()
+                .anyMatch(suppressed -> ruleId.equals(suppressed) || ruleId.startsWith(suppressed + "-"));
     }
 
     public static final class Builder {
