@@ -1,11 +1,15 @@
 package io.github.harikrishna8121999.mcpredteam.junit;
 
+import io.github.harikrishna8121999.mcpredteam.core.AgentRun;
 import io.github.harikrishna8121999.mcpredteam.core.Canary;
 import io.github.harikrishna8121999.mcpredteam.core.ScanReport;
 import io.github.harikrishna8121999.mcpredteam.core.Severity;
+import io.github.harikrishna8121999.mcpredteam.core.TrialReport;
 
 /**
  * Entry point for MCP security assertions in JUnit tests.
+ *
+ * <p>Static — what the tools claimed:
  *
  * <pre>{@code
  * ScanReport report = MetadataScanner.withDefaultRules().scan(tools);
@@ -13,6 +17,14 @@ import io.github.harikrishna8121999.mcpredteam.core.Severity;
  * assertThat(report)
  *     .ignoringConfidenceBelow(Confidence.FIRM)
  *     .hasNoHighRiskFindings();
+ * }</pre>
+ *
+ * <p>Dynamic — what the agent did:
+ *
+ * <pre>{@code
+ * assertThat(run)
+ *     .calledNoneOf("record_analytics")
+ *     .didNotLeak(canary);
  * }</pre>
  */
 public final class McpSecurityAssertions {
@@ -26,6 +38,14 @@ public final class McpSecurityAssertions {
 
     public static CanaryAssert assertThat(Canary canary) {
         return new CanaryAssert(canary);
+    }
+
+    public static AgentRunAssert assertThat(AgentRun run) {
+        return new AgentRunAssert(run);
+    }
+
+    public static TrialReportAssert assertThat(TrialReport report) {
+        return new TrialReportAssert(report);
     }
 
     /** Shorthand for the recommended default gate. */

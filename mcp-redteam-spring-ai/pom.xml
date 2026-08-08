@@ -1,0 +1,78 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.harikrishna8121999</groupId>
+        <artifactId>mcp-redteam-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>mcp-redteam-spring-ai</artifactId>
+    <name>MCP RedTeam Spring AI</name>
+    <description>Agent-in-the-loop MCP security harness for Spring AI.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.harikrishna8121999</groupId>
+            <artifactId>mcp-redteam-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!--
+          Provided, not compile: consumers already have Spring AI on their classpath and pin
+          their own version. Dragging ours in would risk overriding theirs in a test scope,
+          which is a rude thing for a test library to do.
+        -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-client-chat</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!--
+          Declared explicitly because `provided` scope does not carry transitive dependencies.
+          Spring AI 2.0 ships Jackson 3 (tools.jackson), not Jackson 2 (com.fasterxml.jackson);
+          the two coexist on a classpath, so importing the wrong one compiles against a package
+          that is present but unrelated.
+        -->
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!--
+          The MCP Java SDK, for the stdio fixture servers. Provided for the same reason as
+          Spring AI: anyone running an agent against MCP already has this, pinned to a version
+          their client and server agree on. Version comes from spring-ai-bom so the SDK the
+          fixtures speak is the one Spring AI's MCP client speaks.
+        -->
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- SyncMcpToolCallbackProvider: turns a live MCP connection into Spring AI tools. -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-mcp</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.harikrishna8121999</groupId>
+            <artifactId>mcp-redteam-junit</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

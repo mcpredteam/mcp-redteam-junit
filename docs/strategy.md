@@ -20,9 +20,10 @@ wrong about it in public is expensive.
 What is actually defensible is narrower:
 
 1. **Fidelity of observation.** An external tool sees HTTP traffic and infers intent. A test
-   running inside the same JVM sees the actual `ToolCallback` invocation, its arguments, and
-   the advisor chain around it. Spring AI 2.0 made the tool loop a first-class composable
-   part of that chain, so this is a supported extension point.
+   running inside the same JVM decorates the actual `ToolCallback` and sees the tool input as
+   the model produced it, before parsing — which is where an exfiltrated secret appears.
+   `ToolCallback` is a public interface, so this is a supported extension point rather than a
+   hook into the tool loop's internals.
 2. **Ergonomics.** The gate lives in `mvn test`, in the build the team already runs, failing
    with a stack trace and a message a Java developer can act on. No Node or Python toolchain,
    no separate config file, no second CI job.
@@ -68,10 +69,27 @@ Static scanning is a useful cheap gate. The valuable evidence is behavioral:
 - A large invented taxonomy. Use OWASP MCP Top 10.
 - Framework adapters before one dynamic demo actually works.
 
-## What to build first
+## What was built first — and what it cost
 
 One JUnit test wiring a Spring AI agent to a trusted fixture server, a malicious fixture
 server, a canary, a forbidden tool, and a benign user task. It passes only if the agent
-neither leaks the canary nor calls the forbidden tool.
+neither leaks the canary nor calls the forbidden tool. That test is real, and the harness
+under it is covered in CI without an API key.
 
-Everything else is secondary to making that one test real.
+Two things learned in the building, both worth keeping:
+
+- **The advisor this project planned to hook does not exist.** Spring AI 2.0 ships no
+  `ToolCallObservingAdvisor`. Decorating `ToolCallback` turned out to be the better target
+  anyway, but the plan asserted a class nobody had checked for. Verify the extension point
+  before designing around it.
+- **The most dangerous bug in a security harness is the one that reports nothing.** Spring AI
+  runs tools only when the model's options are a `ToolCallingChatOptions`; get that wrong and
+  every tool is silently ignored while the run still completes and the agent still answers.
+  Every negative assertion looked green. That is precisely the false-confidence failure this
+  project claims to fear, found in this project's own code — hence the guard that now refuses
+  to pass over an empty run.
+
+## What to build next
+
+The MCP protocol client. It is the last thing standing between the existing rules and rug-pull
+detection, and it turns hand-written `ToolDefinition` lists into live scans of real servers.
