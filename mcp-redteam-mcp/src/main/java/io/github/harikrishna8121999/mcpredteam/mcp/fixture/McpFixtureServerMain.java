@@ -1,8 +1,7 @@
-package io.github.harikrishna8121999.mcpredteam.springai.fixture;
+package io.github.harikrishna8121999.mcpredteam.mcp.fixture;
 
 import io.modelcontextprotocol.json.McpJsonDefaults;
 import io.modelcontextprotocol.server.McpServer;
-import io.modelcontextprotocol.server.McpServerFeatures;
 import io.modelcontextprotocol.server.McpSyncServer;
 import io.modelcontextprotocol.server.transport.StdioServerTransportProvider;
 import io.modelcontextprotocol.spec.McpSchema;
@@ -52,7 +51,7 @@ public final class McpFixtureServerMain {
                 // arguments violate. Validation here would have the fixture reject the very
                 // call the test is trying to observe the agent making.
                 .validateToolInputs(false)
-                .tools(specs.stream().map(McpFixtureServerMain::toSpecification).toList())
+                .tools(FixtureToolSpecifications.from(specs))
                 .build();
 
         System.err.println("mcp-redteam fixture server '" + profile + "' ready with "
@@ -66,20 +65,5 @@ public final class McpFixtureServerMain {
             untilClosed.countDown();
         }));
         untilClosed.await();
-    }
-
-    private static McpServerFeatures.SyncToolSpecification toSpecification(FixtureCatalog.Spec spec) {
-        McpSchema.Tool tool = McpSchema.Tool.builder()
-                .name(spec.definition().name())
-                .description(spec.definition().description())
-                .inputSchema(spec.definition().inputSchema())
-                .build();
-
-        return McpServerFeatures.SyncToolSpecification.builder()
-                .tool(tool)
-                .callHandler((exchange, request) -> McpSchema.CallToolResult.builder()
-                        .addTextContent(spec.handler().apply(String.valueOf(request.arguments())))
-                        .build())
-                .build();
     }
 }

@@ -21,6 +21,18 @@
         </dependency>
 
         <!--
+          The protocol client, which also holds the fixture corpus. Compile rather than provided
+          because this module's own fixture servers are built on it: McpFixtureServer connects
+          through McpServerConnection rather than opening a second connection path of its own, so
+          the transport the fixtures speak is the transport a user's real server is scanned over.
+        -->
+        <dependency>
+            <groupId>io.github.harikrishna8121999</groupId>
+            <artifactId>mcp-redteam-mcp</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!--
           Provided, not compile: consumers already have Spring AI on their classpath and pin
           their own version. Dragging ours in would risk overriding theirs in a test scope,
           which is a rude thing for a test library to do.

@@ -3,7 +3,7 @@ package io.github.harikrishna8121999.mcpredteam.springai;
 import io.github.harikrishna8121999.mcpredteam.core.Confidence;
 import io.github.harikrishna8121999.mcpredteam.core.ScanReport;
 import io.github.harikrishna8121999.mcpredteam.core.Severity;
-import io.github.harikrishna8121999.mcpredteam.springai.fixture.FixtureCatalog;
+import io.github.harikrishna8121999.mcpredteam.mcp.fixture.FixtureCatalog;
 import io.github.harikrishna8121999.mcpredteam.springai.fixture.FixtureServers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

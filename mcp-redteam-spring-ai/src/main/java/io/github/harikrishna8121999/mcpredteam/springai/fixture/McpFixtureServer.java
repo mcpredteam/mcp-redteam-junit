@@ -1,16 +1,17 @@
 package io.github.harikrishna8121999.mcpredteam.springai.fixture;
 
+import io.github.harikrishna8121999.mcpredteam.core.ScanReport;
+import io.github.harikrishna8121999.mcpredteam.core.ToolDefinition;
+import io.github.harikrishna8121999.mcpredteam.mcp.McpServerConnection;
+import io.github.harikrishna8121999.mcpredteam.mcp.McpServerTarget;
+import io.github.harikrishna8121999.mcpredteam.mcp.fixture.FixtureCatalog;
+import io.github.harikrishna8121999.mcpredteam.mcp.fixture.McpFixtureServerMain;
 import io.github.harikrishna8121999.mcpredteam.springai.ToolServer;
-import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;
-import io.modelcontextprotocol.client.transport.ServerParameters;
-import io.modelcontextprotocol.client.transport.StdioClientTransport;
-import io.modelcontextprotocol.json.McpJsonDefaults;
 import org.springframework.ai.mcp.McpToolNamePrefixGenerator;
 import org.springframework.ai.mcp.SyncMcpToolCallbackProvider;
 
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.List;
 
 /**
@@ -31,19 +32,21 @@ import java.util.List;
  * it buys over {@link FixtureServers} is confidence that a payload survives the whole path to
  * the model — the answer turns out to be yes, but that is a finding, not an assumption.
  *
+ * <p>Connecting is delegated to {@link McpServerConnection} rather than done here, so the
+ * fixtures are reached over exactly the code path a user's own server is scanned over. When that
+ * path had a copy on each side, only one of them was exercised by the tests that mattered.
+ *
  * <p>Slower than the in-process fixtures by a JVM startup, so prefer those for the tests that
  * run on every build and keep these for the ones that prove the protocol path works.
  */
 public final class McpFixtureServer implements AutoCloseable {
 
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
-
+    private final McpServerConnection connection;
     private final ToolServer toolServer;
-    private final McpSyncClient client;
 
-    private McpFixtureServer(ToolServer toolServer, McpSyncClient client) {
+    private McpFixtureServer(McpServerConnection connection, ToolServer toolServer) {
+        this.connection = connection;
         this.toolServer = toolServer;
-        this.client = client;
     }
 
     /**
@@ -60,26 +63,20 @@ public final class McpFixtureServer implements AutoCloseable {
         // initialize() and leaves the client reporting a timeout.
         FixtureCatalog.profile(profile);
 
-        ServerParameters parameters = ServerParameters.builder(javaExecutable())
-                .args("-cp", System.getProperty("java.class.path"),
-                        McpFixtureServerMain.class.getName(), profile)
-                .build();
-
-        McpSyncClient client = McpClient
-                .sync(new StdioClientTransport(parameters, McpJsonDefaults.getMapper()))
-                .requestTimeout(REQUEST_TIMEOUT)
-                .build();
-        client.initialize();
+        McpServerConnection connection = McpServerConnection.connect(serverName,
+                McpServerTarget.stdio(javaExecutable(),
+                        "-cp", System.getProperty("java.class.path"),
+                        McpFixtureServerMain.class.getName(), profile));
 
         // noPrefix keeps tools named as the server published them. Spring AI's default prefixes
         // the client name onto every tool, which would mean assertions and findings referred to
         // a name that exists nowhere in the corpus, the payload, or the server.
         SyncMcpToolCallbackProvider provider = SyncMcpToolCallbackProvider.builder()
-                .mcpClients(List.of(client))
+                .mcpClients(List.of(connection.client()))
                 .toolNamePrefixGenerator(McpToolNamePrefixGenerator.noPrefix())
                 .build();
 
-        return new McpFixtureServer(ToolServer.of(serverName, provider), client);
+        return new McpFixtureServer(connection, ToolServer.of(serverName, provider));
     }
 
     /** The tools this server published, ready to hand to {@code McpRedTeam}. */
@@ -87,14 +84,34 @@ public final class McpFixtureServer implements AutoCloseable {
         return toolServer;
     }
 
+    /** The protocol connection, for scanning this fixture the way a real server is scanned. */
+    public McpServerConnection connection() {
+        return connection;
+    }
+
     /** The live client, for talking to the fixture directly — {@code listTools}, {@code ping}. */
     public McpSyncClient client() {
-        return client;
+        return connection.client();
+    }
+
+    /**
+     * The published tools as the static scanner reads them, straight from {@code tools/list}.
+     *
+     * <p>Distinct from running {@code SpringToolDefinitions} over {@link #toolServer()}: this
+     * carries the MCP tool annotations, which Spring AI's tool model has nowhere to put.
+     */
+    public List<ToolDefinition> publishedTools() {
+        return connection.listTools();
+    }
+
+    /** A static scan of what this fixture publishes, over the wire. */
+    public ScanReport scan() {
+        return connection.scan();
     }
 
     @Override
     public void close() {
-        client.closeGracefully();
+        connection.close();
     }
 
     /**

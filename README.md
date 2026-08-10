@@ -87,7 +87,7 @@ than no tool.
 
 | Capability | State |
 | --- | --- |
-| Static metadata scanner (7 rule families) | **Working**, 245 tests overall |
+| Static metadata scanner (7 rule families) | **Working**, 270 tests overall |
 | Canary exfiltration detection (plain, base64, hex, percent, reversed) | **Working** |
 | JUnit assertions with severity + confidence gating | **Working** |
 | Dynamic Spring AI agent-in-the-loop harness | **Working** — Spring AI 2.0, `ToolCallback` recording |
@@ -96,10 +96,10 @@ than no tool.
 | Malicious fixture MCP server *process* (stdio, MCP Java SDK 2.0) | **Working** — `McpFixtureServer` launches one and connects over JSON-RPC |
 | Tool-trust policy (withhold by server, or by scan severity) | **Working** — the remediation half, so the failing test has a fix to pass under |
 | Multi-trial hijack *rate* measurement | **Working** — `runTrials` + `TrialReport`; one run of a model is one sample |
-| MCP protocol client for *scanning* an arbitrary server URL | Not built — fixtures connect over MCP, but there is no general `tools/list` scanner yet |
-| Rug-pull detection (schema fingerprint diffing) | Not built — blocked on the protocol client |
+| MCP protocol client for *scanning* an arbitrary server URL | **Working** — `McpServerConnection` over stdio and Streamable HTTP; `connection.scan()` is the whole thing |
+| Rug-pull detection (schema fingerprint diffing) | Not built — no longer blocked; the protocol client it needed now exists |
 | Intermediate assistant turns | **Not captured** — Spring AI exposes no per-iteration text, so `MCPRT-LEAK-002` only sees the final response |
-| Tool annotations (`destructiveHint`) on the Spring path | **Not available** — Spring AI's tool definition has no field for them, so `MCPRT-CAP` cannot be satisfied there |
+| Tool annotations (`destructiveHint`) on the Spring path | **Not available** — Spring AI's tool definition has no field for them, so `MCPRT-CAP` cannot be satisfied there. Scan over `McpServerConnection` instead, which reads them from `tools/list` |
 | JSON / SARIF reports, CLI, LangChain4j | Not built |
 
 Two things a green build here does **not** mean. A clean static report means nothing *looked*
@@ -163,10 +163,33 @@ Findings carry a `Confidence` alongside `Severity`. Gate CI on `FIRM` and above;
 | --- | --- |
 | `mcp-redteam-core` | Threat model, rules, canaries, findings, reports, observation model. Zero dependencies. |
 | `mcp-redteam-junit` | JUnit 5 assertions. |
+| `mcp-redteam-mcp` | Protocol client: `tools/list` from a live server over stdio or Streamable HTTP. The MCP SDK is `provided`. No Spring, no model. |
 | `mcp-redteam-spring-ai` | Agent-in-the-loop harness. Spring AI is `provided`, so it never overrides your version. |
 
 A CLI and a LangChain4j adapter will be separate modules once there is something real to put in
 them. Empty placeholder modules are structure pretending to be architecture.
+
+## Scanning a live server
+
+Point it at a URL. No agent, no model, no API key — this is the cheap gate, and it needs
+`mcp-redteam-junit` and `mcp-redteam-mcp` only.
+
+```java
+try (McpServerConnection vendor = McpServerConnection.connect(
+        "invoice-insights", McpServerTarget.streamableHttp("https://mcp.vendor.example/mcp"))) {
+
+    assertThatScan(vendor.scan()).hasNoFindingsAtOrAbove(Severity.HIGH);
+}
+```
+
+`McpServerTarget.stdio("npx", "-y", "@vendor/mcp-server")` scans a locally installed server
+instead — though note that launching one runs an arbitrary program with your privileges, before
+`tools/list` can tell you anything about it. Scanning a stdio server is a strictly weaker
+safeguard than not running it.
+
+The name you pass is the harness's label, used in every finding. It is deliberately not the name
+the server reports for itself: that is a claim, not an identity, and a report that repeated it
+back would launder a hostile server's chosen branding into evidence.
 
 ## Dynamic testing
 
@@ -238,9 +261,11 @@ Dynamic came first, and it works. The static scanner is the commoditized half, s
 agent-in-the-loop test led — and it was worth learning in week one whether it could be made to
 work at all.
 
-Next, in order: an MCP protocol client that can be pointed at any server URL, so `tools/list` can
-be scanned live rather than only against fixtures. That also unlocks rug-pull detection via
-schema fingerprinting — the one threat in the model still uncovered.
+The MCP protocol client landed next: `tools/list` over stdio and Streamable HTTP, so a scan can
+be pointed at a real server URL instead of a hand-written tool list.
+
+Next is rug-pull detection via schema fingerprinting — the one threat in the model still
+uncovered, and no longer blocked now that fetching `tools/list` twice is possible.
 Then JSON and JUnit XML reports, then a Maven Central release. LangChain4j, SARIF and a CLI are
 deliberately later; the observation model is framework-agnostic, so a second harness only has
 to produce observations and inherits every detector.

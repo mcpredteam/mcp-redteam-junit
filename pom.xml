@@ -43,6 +43,7 @@
     <modules>
         <module>mcp-redteam-core</module>
         <module>mcp-redteam-junit</module>
+        <module>mcp-redteam-mcp</module>
         <module>mcp-redteam-spring-ai</module>
     </modules>
 
@@ -61,6 +62,13 @@
           fixture that mysteriously publishes no tools.
         -->
         <mcp-sdk.version>2.0.0</mcp-sdk.version>
+        <!--
+          Test scope only, in mcp-redteam-mcp, to stand up a Streamable HTTP MCP server locally.
+          The SDK's HTTP server transports are servlet-based, so proving the Streamable HTTP
+          client works needs a container; running one on loopback keeps that proof in CI instead
+          of behind a network-dependent tag. Never leaves test scope, so no consumer sees it.
+        -->
+        <jetty.version>12.0.16</jetty.version>
         <!-- Indirected because a literal in the plugin's <configuration> cannot be overridden
              from the command line: POM configuration beats -D, so -DexcludedGroups= is silently
              ignored and the tests it was meant to enable simply do not run. -->
