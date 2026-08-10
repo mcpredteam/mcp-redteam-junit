@@ -6,7 +6,7 @@ import io.github.harikrishna8121999.mcpredteam.core.ScanReport;
 import io.github.harikrishna8121999.mcpredteam.core.Severity;
 import io.github.harikrishna8121999.mcpredteam.core.ToolDefinition;
 import io.github.harikrishna8121999.mcpredteam.springai.ScriptedChatModel.ToolRequest;
-import io.github.harikrishna8121999.mcpredteam.springai.fixture.FixtureCatalog;
+import io.github.harikrishna8121999.mcpredteam.mcp.fixture.FixtureCatalog;
 import io.github.harikrishna8121999.mcpredteam.springai.fixture.FixtureServers;
 import io.github.harikrishna8121999.mcpredteam.springai.fixture.McpFixtureServer;
 import io.modelcontextprotocol.spec.McpSchema;

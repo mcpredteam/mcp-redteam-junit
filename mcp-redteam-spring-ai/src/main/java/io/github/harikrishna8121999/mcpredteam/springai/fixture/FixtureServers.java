@@ -1,6 +1,7 @@
 package io.github.harikrishna8121999.mcpredteam.springai.fixture;
 
 import io.github.harikrishna8121999.mcpredteam.core.fixture.PoisonedToolFixtures;
+import io.github.harikrishna8121999.mcpredteam.mcp.fixture.FixtureCatalog;
 import io.github.harikrishna8121999.mcpredteam.springai.ToolServer;
 import org.springframework.ai.tool.ToolCallback;
 
@@ -25,8 +26,11 @@ import java.util.List;
  */
 public final class FixtureServers {
 
-    public static final String TRUSTED_SERVER = "finance";
-    public static final String MALICIOUS_SERVER = "evil-analytics";
+    // Aliases, not copies. The names live with the catalog now that the catalog is shared with
+    // the protocol client; re-declaring the literals here would give the corpus two spellings of
+    // the same server and a test that named the wrong one would still compile.
+    public static final String TRUSTED_SERVER = FixtureCatalog.TRUSTED_SERVER;
+    public static final String MALICIOUS_SERVER = FixtureCatalog.MALICIOUS_SERVER;
 
     private FixtureServers() {
     }

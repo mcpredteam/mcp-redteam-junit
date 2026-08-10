@@ -26,13 +26,19 @@ surface.
 | Confused deputy | Agent uses its authority on behalf of an untrusted server | `MCPRT-DEP-001` (dynamic) |
 | Agent hijack | Agent calls a tool the task never called for | `MCPRT-HIJ-001` (dynamic) |
 | Live exfiltration | Planted canary reaches a tool argument or the response | `MCPRT-LEAK` (dynamic) |
-| Rug pull | Metadata changes after trust or approval | **Not covered** — needs protocol client + fingerprinting |
+| Rug pull | Metadata changes after trust or approval | **Not covered** — fingerprinting not built; the protocol client it needed now exists |
 
 The "not covered" rows drove the build order. Three threats were invisible to any static scan,
 and two of those three were the highest-value ones — which is why the dynamic harness came
-first. Rug pull is the one that remains, and it is blocked on the protocol client rather than
-on detection: the rules to compare two fingerprints are easy, fetching `tools/list` twice is
-the missing part.
+first. Rug pull is the one that remains. It was blocked on the protocol client rather than on
+detection — the rules to compare two fingerprints are easy, fetching `tools/list` twice was the
+missing part — and that block is now gone.
+
+One thing to settle before the fingerprints exist, because it decides what they are worth: a
+fingerprint captured on first sight is trust on first use, so a baseline taken from a server
+that was already poisoned blesses the poison and reports drift only if the attacker later
+cleans up. Capture has to run the static scan and refuse to record a tool that failed the gate,
+or the feature quietly certifies the thing it was built to catch.
 
 `MCPRT-CRED` was added the other way round — the dynamic harness found the gap, and a static rule
 closed it. A tool that matched the user's task and simply declared an extra `apiKey` parameter,

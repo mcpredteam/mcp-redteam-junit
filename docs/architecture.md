@@ -3,6 +3,7 @@
 ## Pipeline
 
 ```text
+Live server -> tools/list -> ToolDefinition                             (protocol, built)
 Tool definitions -> MetadataRule -> Finding -> ScanReport -> Assertion   (static, built)
 Fixture server -> Agent -> AgentRun -> BehaviorRule -> ScanReport        (dynamic, built)
 ```
@@ -33,8 +34,20 @@ Implemented rule families: instruction injection (`MCPRT-INJ`), hidden Unicode a
 parameters (`MCPRT-CRED`), shadowing and cross-tool redirection (`MCPRT-SHD`), undeclared
 destructive capability (`MCPRT-CAP`).
 
-Not yet implemented: schema drift against a stored fingerprint (rug pull) — it needs the MCP
-protocol client, which is not built.
+Not yet implemented: schema drift against a stored fingerprint (rug pull). It needed the MCP
+protocol client, which now exists, so what remains is the fingerprint format and the diff.
+
+### Protocol client — built
+
+`McpServerConnection` connects to a real server over stdio or Streamable HTTP, completes the
+`initialize` handshake and turns `tools/list` into `ToolDefinition`s. `connection.scan()` is the
+static scan of a server nobody wrote down by hand — the point of the module.
+
+This is also the only path on which MCP tool annotations are visible. Spring AI's tool model has
+no field for `destructiveHint`, so `MCPRT-CAP` could never be satisfied there; from `tools/list`
+it can, and absence stays distinguishable from `false`. Those mean opposite things — a server
+that declined to declare a hint versus one that made a checkable claim — and until now they had
+the same symptom.
 
 ### Dynamic agent-in-the-loop — built
 
@@ -93,12 +106,30 @@ io.github.harikrishna8121999.mcpredteam.core.fixture
 io.github.harikrishna8121999.mcpredteam.junit
   McpSecurityAssertions  ScanReportAssert  CanaryAssert  AgentRunAssert
 
+io.github.harikrishna8121999.mcpredteam.mcp             // MCP Java SDK 2.0, provided scope
+  McpServerTarget  McpServerConnection  McpToolDefinitions
+io.github.harikrishna8121999.mcpredteam.mcp.fixture
+  FixtureCatalog  FixtureToolSpecifications  McpFixtureServerMain
+
 io.github.harikrishna8121999.mcpredteam.springai        // Spring AI 2.0, provided scope
   McpRedTeam  ToolServer  RecordingToolCallback
   ToolCallRecorder  SpringToolDefinitions
 io.github.harikrishna8121999.mcpredteam.springai.fixture
-  FixtureServers  FixtureTool
+  FixtureServers  FixtureTool  McpFixtureServer
 ```
+
+**The protocol client is its own module, not part of the Spring AI one.** The consumers of a
+`tools/list` scan are the *static* tests: someone who wants to stop hand-writing tool
+definitions and point the scanner at their real server, with no agent and no model anywhere in
+it. Folding this into `mcp-redteam-spring-ai` would bill that person four extra dependency
+declarations — everything there is `provided`, including a model provider — to run a scan that
+never calls a model.
+
+The fixture corpus moved down with it, because none of it was ever about Spring: a poisoned tool
+description is a fact about MCP. That keeps one corpus behind stdio, Streamable HTTP and the
+in-process Spring fixtures, and `McpFixtureServer` now connects through `McpServerConnection`
+rather than opening a second connection path — when there were two, only one of them was
+exercised by the tests that mattered.
 
 ## Design decisions worth preserving
 
@@ -134,6 +165,22 @@ as the model produced it, before parsing — the only place an exfiltrated canar
 to appear verbatim. It is also a public interface rather than an internal of the tool-calling
 loop. See [integration-plan.md](integration-plan.md), which also records that the advisor this
 project originally planned to use does not exist.
+
+**Never call the SDK's no-argument `listTools()`.** It looks like exactly what a scanner wants
+and is the one method it must not use. Internally it expands the pagination cursor chain and
+reduces it into a single result, with no bound — so a server that returns a fresh `nextCursor`
+every time makes it never return, while the tools it collects accumulate until the JVM runs out
+of heap. The caller cannot interrupt it, time it out per page, or find out how far it got. That
+is a reasonable default for a client talking to a server it trusts and unusable for one whose
+entire job is talking to servers it does not. `McpServerConnection` drives pagination itself
+through the single-argument overload, caps the pages, and stops early if a cursor repeats.
+
+It fails rather than returning the pages it did read. A truncated list would be the worse bug by
+far: the scan would cover a slice of the server's tools, nothing in the result would say which
+slice, and a clean report would mean "the first few pages looked fine" while reading as "clean".
+`HostileServerTest` pins all of this, under a class-level timeout — every failure mode there is
+a hang rather than an assertion error, and without the timeout a regression would not turn CI
+red, it would turn CI permanently yellow.
 
 **Tool results are inbound, not emitted.** `AgentRun#allEmittedText` covers the response,
 intermediate messages and tool-call arguments, and deliberately excludes tool results. A

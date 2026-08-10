@@ -1,0 +1,71 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.harikrishna8121999</groupId>
+        <artifactId>mcp-redteam-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>mcp-redteam-mcp</artifactId>
+    <name>MCP RedTeam Protocol Client</name>
+    <description>Reads tools/list from a live MCP server over stdio or Streamable HTTP.</description>
+
+    <!--
+      Why this is its own module rather than part of mcp-redteam-spring-ai, which already has the
+      MCP SDK on its classpath: the consumers of a protocol client are the *static* tests. The
+      thing a user wants is to stop hand-writing ToolDefinition lists and point the scanner at
+      their real server — no agent, no model, no framework. Folding this into the Spring AI module
+      would bill that user four extra dependency declarations, including a model provider, to run
+      a scan that never calls a model. Everything Spring AI is stays one module up; this one knows
+      only the protocol and the core domain model.
+    -->
+    <dependencies>
+        <dependency>
+            <groupId>io.github.harikrishna8121999</groupId>
+            <artifactId>mcp-redteam-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!--
+          Provided for the same reason Spring AI is provided one module up: anyone pointing this
+          at a real MCP server already has the SDK, pinned to a version their client and server
+          agree on, and a test library that overrides that pin is a rude one. The bill is that a
+          consumer declares `mcp` themselves — one line, and one they want control of anyway,
+          because a protocol-version mismatch surfaces as a server that mysteriously lists no
+          tools rather than as anything naming the real cause.
+        -->
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.harikrishna8121999</groupId>
+            <artifactId>mcp-redteam-junit</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+          A servlet container, purely to host the SDK's own Streamable HTTP server transport in
+          the tests. Testing the HTTP client against the SDK's compliant server is what proves
+          this speaks real Streamable HTTP — session headers, protocol negotiation, SSE framing —
+          rather than something that merely satisfies a fixture we also wrote.
+        -->
+        <dependency>
+            <groupId>org.eclipse.jetty.ee10</groupId>
+            <artifactId>jetty-ee10-servlet</artifactId>
+            <version>${jetty.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>
