@@ -28,6 +28,25 @@ public enum ThreatType {
      */
     INCONCLUSIVE_RUN("-", "Inconclusive Run (not an OWASP category)");
 
+    /** Human name of the taxonomy every {@link #owaspId()} belongs to. */
+    public static final String TAXONOMY = "OWASP MCP Top 10";
+
+    /**
+     * Which revision of the taxonomy the ids above are read against.
+     *
+     * <p>Stamped onto every report, because the ids alone do not survive time. The OWASP MCP
+     * Top 10 is still in beta — the categories are stable enough to cite, but the rankings are
+     * explicitly expected to move at the next release, and a category that is {@code MCP03}
+     * today may not be {@code MCP03} then. A report artifact that recorded only "MCP03" would
+     * quietly change meaning after a renumbering, while sitting unchanged in someone's
+     * repository. Recording the revision costs one line and makes an old report re-readable.
+     *
+     * <p>Bump this, and the ids in this enum, when the taxonomy is re-released.
+     */
+    public static final String TAXONOMY_VERSION = "0.1 (2025)";
+
+    public static final String TAXONOMY_URL = "https://owasp.org/www-project-mcp-top-10/";
+
     private final String owaspId;
     private final String owaspTitle;
 

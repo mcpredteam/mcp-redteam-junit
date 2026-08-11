@@ -45,7 +45,26 @@ public final class TextNormalizer {
             Map.entry('ɡ', 'g')  // LATIN SMALL LETTER SCRIPT G
     );
 
+    /** The two sets above, as one matcher, for {@link #isInvisible}. */
+    private static final java.util.regex.Pattern INVISIBLE_OR_TAG =
+            java.util.regex.Pattern.compile(INVISIBLE_CHARS + "|" + TAG_CHARS);
+
     private TextNormalizer() {
+    }
+
+    /**
+     * Whether this code point is one of the invisible characters {@link #normalize} strips.
+     *
+     * <p>Exposed for the report writers, which escape these rather than removing them: a report
+     * is evidence, so it must keep what was there while still making it legible to a reviewer.
+     * Derived from the same patterns the stripping uses, deliberately, because a second list of
+     * ranges maintained alongside the first would eventually disagree with it — and the failure
+     * would be silent, in the direction of a payload rendering as nothing.
+     */
+    public static boolean isInvisible(int codePoint) {
+        // Every character in both sets is non-ASCII, so ordinary text takes the cheap path and
+        // never allocates. This runs per character over whole reports.
+        return codePoint >= 0x80 && INVISIBLE_OR_TAG.matcher(Character.toString(codePoint)).matches();
     }
 
     /** Applies compatibility normalization, strips invisibles, folds confusables, collapses whitespace. */

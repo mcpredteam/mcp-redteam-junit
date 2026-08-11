@@ -3,10 +3,9 @@
 ## Priority order
 
 1. ~~**Spring AI dynamic harness**~~ — **built**, see below.
-2. MCP protocol client (stdio + Streamable HTTP) — turns hand-built definitions into live scans.
-   Partly there already: the stdio fixture servers speak real MCP, so what remains is pointing
-   the same machinery at an arbitrary server rather than a `FixtureCatalog` profile.
-3. Reports (JSON, then JUnit XML).
+2. ~~MCP protocol client (stdio + Streamable HTTP)~~ — **built**; `McpServerConnection` points the
+   same machinery at an arbitrary server rather than a `FixtureCatalog` profile.
+3. ~~Reports (JSON, then JUnit XML)~~ — **built**, see below.
 4. LangChain4j harness — now that Spring AI demonstrably works.
 5. CLI — for CI and non-Java targets.
 6. Runtime guardrails/gateway — v2, a different product.
@@ -194,7 +193,45 @@ every detector and assertion is already shared.
 Useful, but it should not lead the product. The wedge is `mvn test`; a CLI competes directly
 with mcp-scan and promptfoo on their own ground, where they are ahead.
 
-## Reports
+## Reports — built
 
-JSON is canonical, then JUnit XML, then SARIF, then HTML. Reports should be reproducible
-artifacts: same input, same output, diffable in review.
+JSON is canonical, then JUnit XML; SARIF and HTML remain later. Both live in `core.report`, which
+means both are available to a consumer who took only the static scanner.
+
+```java
+Reports.json(report).writeTo(Path.of("target/mcp-redteam/scan.json"));
+Reports.junitXml(report).writeTo(Path.of("target/mcp-redteam/scan-junit.xml"));
+```
+
+The writers are hand-rolled. `mcp-redteam-core` ships no dependencies, and a security library that
+pulls Jackson onto a build in order to print its own findings has made itself a supply-chain
+question. The graph is a handful of records; the cost of not having a mapper is one small file.
+Core's *test* classpath does take Jackson, because a hand-written serializer needs something other
+than itself to check it — substring assertions pass over a missing comma in a nested object.
+
+"Same input, same output, diffable in review" was in tension with `ScanReport` carrying two
+timestamps. Resolved by segregation rather than by dropping either: everything volatile sits in one
+`scan` block at the top of the file, and the findings below are emitted in a total order, so
+re-scanning an unchanged server moves the timestamps and nothing else. The baseline format solves
+the same problem the same way with its `!capturedAt` directive.
+
+Two decisions worth stating rather than discovering:
+
+**Reports never filter.** A report records what was found; the gate decides what counts. A writer
+that silently dropped everything below a threshold would produce an artifact disagreeing with the
+assertion beside it. `report.filteredTo(severity, confidence)` makes the choice visible at the call
+site when a team wants the artifact to mirror the gate.
+
+**Both formats escape invisible characters instead of reproducing them.** A zero-width space
+written raw renders as nothing in the pull request meant to review it — the exact property the
+attacker chose it for. Escaping is lossless, so a parser gives the character back. JUnit XML goes
+further because it has to: XML 1.0 forbids most C0 control characters outright, so a hostile
+description containing one would produce a report no CI system can parse, turning a *detected*
+attack into a build that dies on its own output.
+
+### Why one format covers both halves
+
+`BehaviorScanner.scan(AgentRun)` returns a `ScanReport`, so a hijack, a canary leak and a poisoned
+description all serialize through the same schema. A consumer writes one parser. This was not
+designed for reports — it fell out of `ScanReport` being the shared result type — but it is the
+main reason the reporting layer stayed small.

@@ -87,7 +87,7 @@ than no tool.
 
 | Capability | State |
 | --- | --- |
-| Static metadata scanner (7 rule families) | **Working**, 315 tests overall |
+| Static metadata scanner (7 rule families) | **Working**, 351 tests overall |
 | Canary exfiltration detection (plain, base64, hex, percent, reversed) | **Working** |
 | JUnit assertions with severity + confidence gating | **Working** |
 | Dynamic Spring AI agent-in-the-loop harness | **Working** — Spring AI 2.0, `ToolCallback` recording |
@@ -100,7 +100,8 @@ than no tool.
 | Rug-pull detection (schema fingerprint diffing) | **Working** — `MCPRT-RUG` against a committed baseline; capture refuses a server that already fails the scan |
 | Intermediate assistant turns | **Not captured** — Spring AI exposes no per-iteration text, so `MCPRT-LEAK-002` only sees the final response |
 | Tool annotations (`destructiveHint`) on the Spring path | **Not available** — Spring AI's tool definition has no field for them, so `MCPRT-CAP` cannot be satisfied there. Scan over `McpServerConnection` instead, which reads them from `tools/list` |
-| JSON / SARIF reports, CLI, LangChain4j | Not built |
+| JSON and JUnit XML reports | **Working** — `Reports.json(report)` / `Reports.junitXml(report)`; same schema for static and dynamic findings |
+| SARIF reports, CLI, LangChain4j | Not built |
 
 Two things a green build here does **not** mean. A clean static report means nothing *looked*
 malicious, not that a real agent resists the server. And a passing dynamic test means *this*
@@ -191,6 +192,59 @@ safeguard than not running it.
 The name you pass is the harness's label, used in every finding. It is deliberately not the name
 the server reports for itself: that is a claim, not an identity, and a report that repeated it
 back would launder a hostile server's chosen branding into evidence.
+
+## Reports
+
+A failure message is for the developer who broke the build. A report is for everyone else — the
+reviewer on the pull request, the CI dashboard, the person asking in six months what this server
+looked like when it was approved.
+
+```java
+ScanReport report = vendor.scan();
+
+Reports.json(report).writeTo(Path.of("target/mcp-redteam/scan.json"));
+Reports.junitXml(report).writeTo(Path.of("target/mcp-redteam/scan-junit.xml"));
+
+assertThatScan(report).hasNoFindingsAtOrAbove(Severity.HIGH);   // the gate is still the assertion
+```
+
+Writing a report never gates anything and never filters anything — a report says what was found,
+and one that quietly dropped everything below some threshold would disagree with the test sitting
+next to it. To publish only what the gate acts on, say so where a reader can see it:
+`Reports.json(report.filteredTo(Severity.HIGH, Confidence.FIRM))`.
+
+`BehaviorScanner.scan(run)` returns a `ScanReport` too, so a hijack or a canary leak is reported
+through the same schema as a poisoned description. There is one format to parse, not two.
+
+**JSON is canonical.** It carries every field of every finding, including the structured
+evidence, plus the version of the ruleset that produced it and the version of the OWASP taxonomy
+its category ids are read against — the MCP Top 10 is still in beta and expected to renumber, and
+a stored report that recorded only `MCP03` would quietly change meaning later.
+
+Everything that varies between two runs lives in one `scan` block at the top of the file. Re-scan
+an unchanged server and the only lines that move are the timestamps; the findings below are
+byte-identical, because they are emitted in a total order. That is what makes the artifact
+reviewable in a diff.
+
+**JUnit XML is for build UIs**, and is deliberately lossy — it carries the rendered failure text,
+not the structured evidence. Each finding becomes its own `<testcase>`, grouped by the tool it was
+found on, so a CI system lists them individually and can track one appearing or disappearing
+across builds:
+
+```
+evil-analytics/record_analytics
+    MCPRT-INJ-001 @ description                     failed
+    MCPRT-EXF-002 @ inputSchema/properties/url      failed
+```
+
+The suite also carries a `scan executed` case that **fails when no tools were scanned**. A scan
+over nothing finds nothing, which would otherwise render as a green suite indistinguishable from
+a server that was examined and found clean — the same reason `MCPRT-RUN-001` exists on the dynamic
+side. A new output format is a new place for that failure mode to hide.
+
+Both formats escape invisible characters rather than reproducing them. A zero-width space written
+raw into a report renders as nothing in the pull request reviewing it, which is exactly the
+property the attacker picked it for. Escaping is lossless — a parser gives the character back.
 
 ## Catching a rug pull
 
@@ -312,9 +366,10 @@ Rug-pull detection followed it, which is what fetching `tools/list` twice was fo
 baseline, and `MCPRT-RUG` when a trusted server starts saying something else. That closes the
 last threat in the model that nothing covered.
 
-Next are JSON and JUnit XML reports, then a Maven Central release. LangChain4j, SARIF and a CLI are
-deliberately later; the observation model is framework-agnostic, so a second harness only has
-to produce observations and inherits every detector.
+JSON and JUnit XML reports came after that, so a scan produces an artifact and not just a failure
+message. Next is a Maven Central release. LangChain4j, SARIF and a CLI are deliberately later; the
+observation model is framework-agnostic, so a second harness only has to produce observations and
+inherits every detector.
 
 Issues and milestones carry the current state.
 
