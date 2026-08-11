@@ -32,7 +32,7 @@ import java.util.Set;
  * <pre>{@code
  * try (McpServerConnection vendor = McpServerConnection.connect(
  *         "invoice-insights", McpServerTarget.streamableHttp("https://mcp.vendor.example/mcp"))) {
- *     assertThatScan(vendor.scan()).hasNoFindingsAtOrAbove(Severity.HIGH);
+ *     assertThat(vendor.scan()).hasNoFindingsAtOrAbove(Severity.HIGH);
  * }
  * }</pre>
  *
@@ -217,7 +217,7 @@ public final class McpServerConnection implements AutoCloseable {
      *
      * <pre>{@code
      * ServerFingerprint trusted = Baseline.read(Path.of("src/test/resources/finance-baseline.txt"));
-     * assertThatScan(vendor.scanAgainst(trusted)).hasNoHighRiskFindings();
+     * assertThat(vendor.scanAgainst(trusted)).hasNoHighRiskFindings();
      * }</pre>
      */
     public ScanReport scanAgainst(ServerFingerprint baseline) {
