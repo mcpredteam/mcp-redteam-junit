@@ -7,7 +7,8 @@ Tool poisoning, schema poisoning, tool shadowing and canary exfiltration — che
 
 > **Not published yet.** There is no Maven Central release, so this coordinate will not
 > resolve. Build from source with `mvn install` (JDK 21+) if you want to try it today.
-> Publishing comes once the dynamic harness lands.
+> Everything in the table below is built and tested; publishing waits on the release
+> housekeeping, not on the code.
 
 ```xml
 <dependency>
