@@ -26,19 +26,37 @@ surface.
 | Confused deputy | Agent uses its authority on behalf of an untrusted server | `MCPRT-DEP-001` (dynamic) |
 | Agent hijack | Agent calls a tool the task never called for | `MCPRT-HIJ-001` (dynamic) |
 | Live exfiltration | Planted canary reaches a tool argument or the response | `MCPRT-LEAK` (dynamic) |
-| Rug pull | Metadata changes after trust or approval | **Not covered** — fingerprinting not built; the protocol client it needed now exists |
+| Rug pull | Metadata changes after trust or approval | `MCPRT-RUG` against a captured baseline |
 
 The "not covered" rows drove the build order. Three threats were invisible to any static scan,
 and two of those three were the highest-value ones — which is why the dynamic harness came
-first. Rug pull is the one that remains. It was blocked on the protocol client rather than on
+first. Rug pull was the last one left. It was blocked on the protocol client rather than on
 detection — the rules to compare two fingerprints are easy, fetching `tools/list` twice was the
-missing part — and that block is now gone.
+missing part.
 
-One thing to settle before the fingerprints exist, because it decides what they are worth: a
-fingerprint captured on first sight is trust on first use, so a baseline taken from a server
-that was already poisoned blesses the poison and reports drift only if the attacker later
-cleans up. Capture has to run the static scan and refuse to record a tool that failed the gate,
-or the feature quietly certifies the thing it was built to catch.
+Rug pull is now covered by fingerprinting. `Baseline.capture` records what a server published
+when it was approved, `RugPullRule` compares a later scan against that, and drift is reported at
+MEDIUM — honest vendors do ship changes — while drift that *introduced* something the static
+rules flag is reported at that rule's own severity under a composite id such as
+`MCPRT-RUG-001/MCPRT-INJ-001`. The delegation is the one `MCPRT-TRI` already uses: injection text
+is injection text wherever it appears, and a second copy of those signatures would drift away
+from the originals.
+
+Two decisions inside that are worth more than the rules:
+
+**Trust on first use, refused.** A fingerprint captured on first sight blesses whatever the
+server happens to be serving, so a baseline taken from an already-poisoned server records the
+poison as the trusted state and reports drift only if the attacker later cleans up. Capture runs
+the static scan and refuses — the whole capture, not the offending tools, since a baseline that
+silently omits one tool would report it as newly appeared on every later scan. Accepting a
+finding is possible, but it has to be said out loud, by suppressing the rule id on the gating
+scanner where a reviewer can see it.
+
+**Fingerprints are taken over raw metadata, not normalized text.** Every rule in this library
+matches against `TextNormalizer` output; the fingerprint deliberately does not. Normalizing first
+folds a Cyrillic `а` onto Latin `a` before the digest, so a server could swap a tool name for a
+homoglyph the agent still selects and the fingerprint would not move — hiding the one edit an
+attacker most wants to make quietly.
 
 `MCPRT-CRED` was added the other way round — the dynamic harness found the gap, and a static rule
 closed it. A tool that matched the user's task and simply declared an extra `apiKey` parameter,
@@ -100,6 +118,12 @@ Concrete guards in place:
   that never happened, which is the exact assurance-without-evidence this section is about.
   `ThreatType.INCONCLUSIVE_RUN` carries no OWASP id, because it is not an attack — it is the
   test admitting it proved nothing.
+- `RugPullRule` reports `MCPRT-RUG-000` when the baseline matched no tool in the scan — a
+  mistyped server name, or tools loaded under a different label. Without it the rug-pull check
+  passes cleanly while comparing nothing, which is the same false assurance one layer up.
+- `Baseline` has no "capture it if the file is missing" convenience, however much the API wants
+  one. In CI that call creates the baseline on the first run against whatever is being served,
+  and a check that re-baselines itself whenever it has nothing to compare against can never fail.
 - A `BLOCKED` tool call still fails the assertion. The harness can stop a destructive fixture
   from executing, but the agent's decision to call it is the finding, and letting the block
   count as a pass would convert a hijack into a green build.
