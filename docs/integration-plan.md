@@ -229,6 +229,31 @@ further because it has to: XML 1.0 forbids most C0 control characters outright, 
 description containing one would produce a report no CI system can parse, turning a *detected*
 attack into a build that dies on its own output.
 
+### Rates get their own report
+
+```java
+Reports.json(harness.runTrials(20, task))
+        .measuring("hijacked", TrialReport.hijacked(canary, "record_analytics"))
+        .writeTo(Path.of("target/mcp-redteam/trials.json"));
+```
+
+The rates section above argues that a single run proves very little and that the honest output is
+a rate. That argument only pays off if the rate is something a person can look at later, and until
+this existed it reached a `System.out.println` and nowhere else.
+
+Each run's tool calls go in with the arguments as the model produced them. A bare `6/20` asks to be
+taken on trust, which is the same objection this project raises against single-run verdicts — so
+the artifact carries the evidence it is claiming. It also means a trial report routinely contains
+the planted canary, because that is what a leak is: write it under `target/`, not into the repo.
+
+A rate over zero completed trials serializes as `null`, never `0.0`, matching `rateOf` throwing
+rather than answering. Preserving that distinction in the file is the whole point — otherwise a
+rate-limited afternoon reads as a security improvement to anything parsing it.
+
+No JUnit XML for trials. That format's unit is a pass or a failure and a rate is neither; rendering
+"30% hijacked" as a red test converts a measurement back into the verdict `runTrials` exists to
+avoid.
+
 ### Why one format covers both halves
 
 `BehaviorScanner.scan(AgentRun)` returns a `ScanReport`, so a hijack, a canary leak and a poisoned

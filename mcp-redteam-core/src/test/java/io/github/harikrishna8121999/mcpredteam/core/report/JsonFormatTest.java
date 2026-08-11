@@ -301,6 +301,23 @@ class JsonFormatTest {
     }
 
     @Test
+    void anEmptyContainerIsWrittenOnOneLine() {
+        // Cosmetic, but these files are read by people, and a bracket pair straddling two lines
+        // for every finding without evidence adds up quickly.
+        Finding finding = Finding.builder("MCPRT-CAP-001")
+                .threatType(ThreatType.OVERBROAD_CAPABILITY)
+                .severity(Severity.MEDIUM)
+                .confidence(Confidence.TENTATIVE)
+                .target("evil/delete_all_records")
+                .message("no destructiveHint")
+                .build();
+
+        assertTrue(Reports.json(reportOf(finding)).render().contains("\"evidence\": {}"));
+        assertTrue(Reports.json(new ScanReport(Instant.EPOCH, Instant.EPOCH, 2, List.of()))
+                .render().contains("\"findings\": []"));
+    }
+
+    @Test
     void findingsAreOrderedMostSevereFirst() {
         JsonNode findings = parse(scanOfThePoisonedCorpus()).get("findings");
 

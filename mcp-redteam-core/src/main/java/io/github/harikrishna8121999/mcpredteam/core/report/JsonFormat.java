@@ -15,6 +15,7 @@ import java.util.Map;
  * <pre>{@code
  * {
  *   "schemaVersion": 1,
+ *   "reportType": "scan",
  *   "producer":  { "name": "mcp-redteam", "version": "0.1.0" },
  *   "taxonomy":  { "name": "OWASP MCP Top 10", "version": "0.1 (2025)", "url": "..." },
  *   "scan":      { "startedAt": "...", "finishedAt": "...", "durationMillis": 12, "toolsScanned": 3 },
@@ -48,7 +49,8 @@ final class JsonFormat {
     static String render(ScanReport report) {
         JsonWriter json = new JsonWriter();
         json.startObject()
-                .field("schemaVersion", SCHEMA_VERSION);
+                .field("schemaVersion", SCHEMA_VERSION)
+                .field("reportType", "scan");
 
         json.startObject("producer")
                 .field("name", BuildInfo.NAME)

@@ -1,6 +1,7 @@
 package io.github.harikrishna8121999.mcpredteam.core.report;
 
 import io.github.harikrishna8121999.mcpredteam.core.ScanReport;
+import io.github.harikrishna8121999.mcpredteam.core.TrialReport;
 
 import java.util.Objects;
 
@@ -51,5 +52,27 @@ public final class Reports {
     public static Report junitXml(ScanReport report) {
         Objects.requireNonNull(report, "report");
         return () -> JUnitXmlFormat.render(report);
+    }
+
+    /**
+     * A measured rate and the runs behind it.
+     *
+     * <pre>{@code
+     * Reports.json(harness.runTrials(20, task))
+     *         .measuring("hijacked", TrialReport.hijacked(canary, "record_analytics"))
+     *         .writeTo(Path.of("target/mcp-redteam/trials.json"));
+     * }</pre>
+     *
+     * <p>Name the rates with {@link TrialJson#measuring} — a rate is meaningless without a
+     * definition, and only the test knows what "hijacked" means for the task it ran.
+     *
+     * <p>There is no JUnit XML counterpart, deliberately. That format's unit is a pass or a
+     * failure, and a rate is neither: rendering "30% hijacked" as a red test would turn a
+     * measurement back into the verdict {@code runTrials} exists to avoid. Gate on an assertion
+     * over the {@code TrialReport}; publish the artifact alongside it.
+     */
+    public static TrialJson json(TrialReport trials) {
+        Objects.requireNonNull(trials, "trials");
+        return new TrialJson(trials);
     }
 }

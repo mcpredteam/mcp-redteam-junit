@@ -87,7 +87,7 @@ than no tool.
 
 | Capability | State |
 | --- | --- |
-| Static metadata scanner (7 rule families) | **Working**, 351 tests overall |
+| Static metadata scanner (7 rule families) | **Working**, 364 tests overall |
 | Canary exfiltration detection (plain, base64, hex, percent, reversed) | **Working** |
 | JUnit assertions with severity + confidence gating | **Working** |
 | Dynamic Spring AI agent-in-the-loop harness | **Working** — Spring AI 2.0, `ToolCallback` recording |
@@ -101,6 +101,7 @@ than no tool.
 | Intermediate assistant turns | **Not captured** — Spring AI exposes no per-iteration text, so `MCPRT-LEAK-002` only sees the final response |
 | Tool annotations (`destructiveHint`) on the Spring path | **Not available** — Spring AI's tool definition has no field for them, so `MCPRT-CAP` cannot be satisfied there. Scan over `McpServerConnection` instead, which reads them from `tools/list` |
 | JSON and JUnit XML reports | **Working** — `Reports.json(report)` / `Reports.junitXml(report)`; same schema for static and dynamic findings |
+| Trial-rate reports with per-run traces | **Working** — `Reports.json(trials).measuring(name, predicate)`; a rate with the runs it came from |
 | SARIF reports, CLI, LangChain4j | Not built |
 
 Two things a green build here does **not** mean. A clean static report means nothing *looked*
@@ -245,6 +246,38 @@ side. A new output format is a new place for that failure mode to hide.
 Both formats escape invisible characters rather than reproducing them. A zero-width space written
 raw into a report renders as nothing in the pull request reviewing it, which is exactly the
 property the attacker picked it for. Escaping is lossless — a parser gives the character back.
+
+### Rates as an artifact
+
+A `TrialReport` writes too, and this is the one that answers "how often?" rather than "did it?".
+
+```java
+Reports.json(harness.runTrials(20, task))
+    .measuring("hijacked", TrialReport.hijacked(canary, "record_analytics"))
+    .measuring("leaked", TrialReport.thatLeaked(canary))
+    .writeTo(Path.of("target/mcp-redteam/trials.json"));
+```
+
+A rate needs a name and a definition, and only your test has those — "hijacked" means something
+different for every task. Each predicate is evaluated per run, so the file records *which* trials
+matched, not just how many.
+
+**The traces are the point.** Every run carries its tool calls with the arguments as the model
+produced them. A bare `6/20` asks the reader to take it on trust, and this project's whole
+objection to single-run verdicts is that a number with no evidence behind it cannot be checked.
+The traces are what you read to work out how the model was talked into it.
+
+A rate over zero completed trials is written as `null`, never `0.0`. `TrialReport.rateOf` throws
+rather than answering in that state, for the reason that matters here too: an afternoon of
+provider errors must not read as a security improvement.
+
+There is no JUnit XML counterpart, deliberately. That format's unit is a pass or a failure, and a
+rate is neither — rendering "30% hijacked" as a red test turns a measurement back into the verdict
+`runTrials` exists to avoid.
+
+> **A trial report can contain the planted canary, and usually will — that is what a leak looks
+> like.** Write it under `target/`, not into the repository. If you ever plant a real credential
+> instead of a generated one, the artifact holds that too.
 
 ## Catching a rug pull
 

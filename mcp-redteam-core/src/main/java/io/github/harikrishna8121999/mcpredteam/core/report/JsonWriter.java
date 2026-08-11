@@ -3,6 +3,7 @@ package io.github.harikrishna8121999.mcpredteam.core.report;
 import io.github.harikrishna8121999.mcpredteam.core.TextNormalizer;
 
 import java.util.Collection;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -37,7 +38,11 @@ final class JsonWriter {
 
     JsonWriter endObject() {
         depth--;
-        newline();
+        // needsComma is still false when nothing was written into this container, so an empty
+        // one closes as "{}" on one line rather than as a bracket pair straddling two.
+        if (needsComma) {
+            newline();
+        }
         out.append('}');
         needsComma = true;
         return this;
@@ -63,7 +68,9 @@ final class JsonWriter {
 
     JsonWriter endArray() {
         depth--;
-        newline();
+        if (needsComma) {
+            newline();
+        }
         out.append(']');
         needsComma = true;
         return this;
@@ -81,6 +88,21 @@ final class JsonWriter {
         separate();
         writeKey(key);
         out.append(value);
+        needsComma = true;
+        return this;
+    }
+
+    /**
+     * Writes a rate in {@code [0.0, 1.0]} at fixed precision.
+     *
+     * <p>Formatted rather than handed to {@code Double.toString} so the output does not depend on
+     * the platform's shortest-round-trip rendering, and pinned to {@code Locale.ROOT} because a
+     * machine reading this file will not accept the decimal comma a European default would write.
+     */
+    JsonWriter rate(String key, double value) {
+        separate();
+        writeKey(key);
+        out.append(String.format(Locale.ROOT, "%.4f", value));
         needsComma = true;
         return this;
     }

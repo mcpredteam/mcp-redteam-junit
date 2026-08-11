@@ -7,6 +7,7 @@ Live server -> tools/list -> ToolDefinition                             (protoco
 Tool definitions -> MetadataRule -> Finding -> ScanReport -> Assertion   (static, built)
 Fixture server -> Agent -> AgentRun -> BehaviorRule -> ScanReport        (dynamic, built)
 ScanReport -> Reports.json / Reports.junitXml -> artifact                (reporting, built)
+TrialReport -> Reports.json().measuring(...) -> rate + traces            (reporting, built)
 ```
 
 Both halves converge on `ScanReport`, so findings from either sort, threshold and render
@@ -134,6 +135,7 @@ io.github.harikrishna8121999.mcpredteam.core.fixture
 
 io.github.harikrishna8121999.mcpredteam.core.report
   Reports  Report        // json / junitXml, render() or writeTo(Path)
+  TrialJson             // rates + per-run traces; .measuring(name, predicate)
   JsonFormat  JUnitXmlFormat  JsonWriter  BuildInfo
 
 io.github.harikrishna8121999.mcpredteam.junit
