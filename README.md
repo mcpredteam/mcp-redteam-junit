@@ -87,7 +87,7 @@ than no tool.
 
 | Capability | State |
 | --- | --- |
-| Static metadata scanner (7 rule families) | **Working**, 270 tests overall |
+| Static metadata scanner (7 rule families) | **Working**, 315 tests overall |
 | Canary exfiltration detection (plain, base64, hex, percent, reversed) | **Working** |
 | JUnit assertions with severity + confidence gating | **Working** |
 | Dynamic Spring AI agent-in-the-loop harness | **Working** — Spring AI 2.0, `ToolCallback` recording |
@@ -97,7 +97,7 @@ than no tool.
 | Tool-trust policy (withhold by server, or by scan severity) | **Working** — the remediation half, so the failing test has a fix to pass under |
 | Multi-trial hijack *rate* measurement | **Working** — `runTrials` + `TrialReport`; one run of a model is one sample |
 | MCP protocol client for *scanning* an arbitrary server URL | **Working** — `McpServerConnection` over stdio and Streamable HTTP; `connection.scan()` is the whole thing |
-| Rug-pull detection (schema fingerprint diffing) | Not built — no longer blocked; the protocol client it needed now exists |
+| Rug-pull detection (schema fingerprint diffing) | **Working** — `MCPRT-RUG` against a committed baseline; capture refuses a server that already fails the scan |
 | Intermediate assistant turns | **Not captured** — Spring AI exposes no per-iteration text, so `MCPRT-LEAK-002` only sees the final response |
 | Tool annotations (`destructiveHint`) on the Spring path | **Not available** — Spring AI's tool definition has no field for them, so `MCPRT-CAP` cannot be satisfied there. Scan over `McpServerConnection` instead, which reads them from `tools/list` |
 | JSON / SARIF reports, CLI, LangChain4j | Not built |
@@ -119,6 +119,7 @@ it as a gate.
 | `MCPRT-SHD` | Cross-server name collisions and cross-tool redirection | HIGH |
 | `MCPRT-CRED` | Credential-shaped parameters (`apiKey`, `token`, `password`, …) that invite the agent to leak a secret | MEDIUM |
 | `MCPRT-CAP` | Destructive tools with no `destructiveHint` annotation | MEDIUM |
+| `MCPRT-RUG` | Metadata that changed since the server was baselined; opt-in, needs a baseline | inherits the rule the change tripped |
 
 Dynamic rules, over a recorded `AgentRun`:
 
@@ -190,6 +191,49 @@ safeguard than not running it.
 The name you pass is the harness's label, used in every finding. It is deliberately not the name
 the server reports for itself: that is a claim, not an identity, and a report that repeated it
 back would launder a hostile server's chosen branding into evidence.
+
+## Catching a rug pull
+
+A scan says whether a server looks malicious today. It cannot tell you that this is still the
+server you approved — for that it has to remember. Capture a baseline once, review it, commit it:
+
+```java
+try (McpServerConnection vendor = McpServerConnection.connect(
+        "invoice-insights", McpServerTarget.streamableHttp("https://mcp.vendor.example/mcp"))) {
+
+    Baseline.write(vendor.captureBaseline(), Path.of("src/test/resources/vendor-baseline.txt"));
+}
+```
+
+and from then on the test only reads it:
+
+```java
+ServerFingerprint approved = Baseline.read(Path.of("src/test/resources/vendor-baseline.txt"));
+
+try (McpServerConnection vendor = McpServerConnection.connect(
+        "invoice-insights", McpServerTarget.streamableHttp("https://mcp.vendor.example/mcp"))) {
+
+    assertThatScan(vendor.scanAgainst(approved)).hasNoFindingsAtOrAbove(Severity.HIGH);
+}
+```
+
+The baseline is a sorted line per field — `tool`, `location`, digest — so a server changing a
+parameter description shows up as one reviewable line in a pull request, next to the code review
+that decided to trust it in the first place. Drift alone is MEDIUM, because vendors ship
+features. Drift that introduced text the static rules flag is reported at that rule's severity
+under a composite id such as `MCPRT-RUG-001/MCPRT-INJ-001` — the change is what escalates it.
+
+Two things about this deserve to be stated rather than discovered:
+
+**Capture refuses a server that already fails the scan.** A baseline is trust on first use, so
+taking one from a poisoned server records the poison as trusted and the check then fires only if
+the attacker cleans up. `UntrustedBaselineException` carries the report that refused it. If a
+finding is understood and accepted, suppress that rule id on the gating scanner, where a reviewer
+can see the decision.
+
+**There is no capture-if-missing convenience.** It would create the baseline on the first CI run
+against whatever is being served, and a check that re-baselines itself whenever it has nothing to
+compare against can never fail.
 
 ## Dynamic testing
 
@@ -264,9 +308,11 @@ work at all.
 The MCP protocol client landed next: `tools/list` over stdio and Streamable HTTP, so a scan can
 be pointed at a real server URL instead of a hand-written tool list.
 
-Next is rug-pull detection via schema fingerprinting — the one threat in the model still
-uncovered, and no longer blocked now that fetching `tools/list` twice is possible.
-Then JSON and JUnit XML reports, then a Maven Central release. LangChain4j, SARIF and a CLI are
+Rug-pull detection followed it, which is what fetching `tools/list` twice was for: a committed
+baseline, and `MCPRT-RUG` when a trusted server starts saying something else. That closes the
+last threat in the model that nothing covered.
+
+Next are JSON and JUnit XML reports, then a Maven Central release. LangChain4j, SARIF and a CLI are
 deliberately later; the observation model is framework-agnostic, so a second harness only has
 to produce observations and inherits every detector.
 
@@ -275,7 +321,7 @@ Issues and milestones carry the current state.
 ## Docs
 
 - [Strategy](docs/strategy.md) — positioning, and what is honestly defensible about it
-- [Threat Model](docs/threat-model.md) — what is covered, and the three threats that are not
+- [Threat Model](docs/threat-model.md) — what is covered, and what a green build still does not mean
 - [Architecture](docs/architecture.md) — pipeline, package shape, design decisions worth keeping
 - [Integration Plan](docs/integration-plan.md) — JUnit today, Spring AI next
 - [References](docs/references.md) — specs, standards and research each rule is built against

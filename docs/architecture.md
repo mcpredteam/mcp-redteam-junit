@@ -34,8 +34,35 @@ Implemented rule families: instruction injection (`MCPRT-INJ`), hidden Unicode a
 parameters (`MCPRT-CRED`), shadowing and cross-tool redirection (`MCPRT-SHD`), undeclared
 destructive capability (`MCPRT-CAP`).
 
-Not yet implemented: schema drift against a stored fingerprint (rug pull). It needed the MCP
-protocol client, which now exists, so what remains is the fingerprint format and the diff.
+### Schema fingerprinting — built
+
+`core.fingerprint` records what a server published when it was approved and compares later scans
+against it. `ToolFingerprint` flattens a tool into `location -> digest` pairs over a canonical
+form (`CanonicalForm`): map keys sorted, values type-tagged, traversal depth-capped the way
+`SchemaWalker` is, so two scans of an unchanged server agree and a JSON decoder's key order
+cannot make them disagree.
+
+Three decisions carry the design:
+
+- **The digest is over raw metadata.** Everything else in the library matches normalized text;
+  hashing normalized text here would fold a Cyrillic `а` onto `a` before the digest, so a
+  homoglyph rename of a trusted tool would leave the fingerprint unmoved.
+- **The baseline is a committed text file, one sorted line per location.** It is a review
+  artifact: a changed parameter description is one line in a pull request diff. Tool names and
+  locations are attacker-controlled, so they are escaped to printable ASCII on the way out — a
+  property name carrying a tab or a newline would otherwise forge lines in a file this code
+  parses back, and a look-alike character would sit in the diff impersonating the name it
+  replaced. `BaselineFormat` parses strictly and repairs nothing.
+- **Capture is gated.** `Baseline.capture` runs the static scan and refuses a server that fails
+  it, because a fingerprint taken on first sight is trust on first use and a baseline of a
+  poisoned server certifies the poison.
+
+`RugPullRule` (`MCPRT-RUG`) is an ordinary `MetadataRule` holding a baseline, so it composes into
+`MetadataScanner` beside the others. Drift is MEDIUM; drift is re-scanned by the static text
+rules over the *changed locations only*, and anything they flag is reported at their severity
+under `MCPRT-RUG-001/<rule id>` — the same delegation `MCPRT-TRI` uses, for the same reason.
+`MCPRT-RUG-000` reports a baseline that matched no tool in the scan, since a comparison that
+compared nothing must not pass quietly.
 
 ### Protocol client — built
 

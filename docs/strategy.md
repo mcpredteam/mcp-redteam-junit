@@ -91,5 +91,8 @@ Two things learned in the building, both worth keeping:
 
 ## What to build next
 
-The MCP protocol client. It is the last thing standing between the existing rules and rug-pull
-detection, and it turns hand-written `ToolDefinition` lists into live scans of real servers.
+Reports. The protocol client and rug-pull detection are both done — scans run against live
+server URLs, and a committed baseline turns the existing rules into drift detection — so what is
+missing is no longer a detection but an artifact: a JSON report as the canonical output, and
+JUnit XML for CI. Findings that only exist as an assertion message cannot be tracked between
+builds, which is what a team needs before any of this is worth adopting.

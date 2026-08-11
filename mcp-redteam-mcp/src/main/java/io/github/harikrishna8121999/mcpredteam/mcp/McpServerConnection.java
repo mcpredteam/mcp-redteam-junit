@@ -3,7 +3,11 @@ package io.github.harikrishna8121999.mcpredteam.mcp;
 import io.github.harikrishna8121999.mcpredteam.core.McpSecurityScanner;
 import io.github.harikrishna8121999.mcpredteam.core.MetadataScanner;
 import io.github.harikrishna8121999.mcpredteam.core.ScanReport;
+import io.github.harikrishna8121999.mcpredteam.core.Severity;
 import io.github.harikrishna8121999.mcpredteam.core.ToolDefinition;
+import io.github.harikrishna8121999.mcpredteam.core.fingerprint.Baseline;
+import io.github.harikrishna8121999.mcpredteam.core.fingerprint.RugPullRule;
+import io.github.harikrishna8121999.mcpredteam.core.fingerprint.ServerFingerprint;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
@@ -186,6 +190,38 @@ public final class McpServerConnection implements AutoCloseable {
 
     public ScanReport scan(McpSecurityScanner scanner) {
         return scanner.scan(listTools());
+    }
+
+    /**
+     * Records what this server publishes right now, as the trusted state to compare later scans
+     * against.
+     *
+     * <p>Gated: a server that fails the static scan is not baselined, because a fingerprint taken
+     * from an already-poisoned server records the poison as trusted. This is a deliberate,
+     * occasional act — capture the baseline, read the file, commit it — not something a test
+     * should do on the way past. See {@link Baseline}.
+     *
+     * @throws io.github.harikrishna8121999.mcpredteam.core.fingerprint.UntrustedBaselineException
+     *         if the server does not currently pass
+     */
+    public ServerFingerprint captureBaseline() {
+        return Baseline.capture(serverName, listTools());
+    }
+
+    public ServerFingerprint captureBaseline(McpSecurityScanner gateScanner, Severity gate) {
+        return Baseline.capture(serverName, listTools(), gateScanner, gate);
+    }
+
+    /**
+     * Scans with the default rules plus a rug-pull check against a baseline.
+     *
+     * <pre>{@code
+     * ServerFingerprint trusted = Baseline.read(Path.of("src/test/resources/finance-baseline.txt"));
+     * assertThatScan(vendor.scanAgainst(trusted)).hasNoHighRiskFindings();
+     * }</pre>
+     */
+    public ScanReport scanAgainst(ServerFingerprint baseline) {
+        return scan(MetadataScanner.builder().addRule(RugPullRule.against(baseline)).build());
     }
 
     @Override
