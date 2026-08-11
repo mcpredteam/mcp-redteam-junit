@@ -3,6 +3,13 @@ package io.github.harikrishna8121999.mcpredteam.core;
 /**
  * Threat taxonomy, mapped onto the OWASP MCP Top 10 rather than invented here.
  *
+ * <p>Only categories some rule can actually produce appear below. The enum deliberately does not
+ * mirror the whole OWASP list: a constant no detector emits is a claim of coverage that does not
+ * exist, and it reaches a reader as one — in an exhaustive switch, in a report schema, in the
+ * javadoc. MCP08 Cross-Server Escalation was carried here unused from the first taxonomy pass and
+ * has been removed for that reason. Add the constant back in the same change as the rule that
+ * raises it; widening an enum is a compatible change, and narrowing one after a release is not.
+ *
  * @see <a href="https://owasp.org/www-project-mcp-top-10/">OWASP MCP Top 10</a>
  */
 public enum ThreatType {
@@ -12,7 +19,6 @@ public enum ThreatType {
     RUG_PULL("MCP03", "Tool Poisoning / Rug Pull"),
     TOOL_RESULT_INJECTION("MCP01", "Prompt Injection via Tool Output"),
     CROSS_TOOL_POISONING("MCP03", "Tool Poisoning / Cross-Tool"),
-    CROSS_SERVER_ATTACK("MCP08", "Cross-Server Escalation"),
     CONFUSED_DEPUTY("MCP02", "Excessive Agency"),
     EXFILTRATION_CHANNEL("MCP06", "Sensitive Data Exposure"),
     OVERBROAD_CAPABILITY("MCP02", "Excessive Agency"),
