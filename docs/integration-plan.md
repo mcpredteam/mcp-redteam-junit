@@ -23,7 +23,7 @@ section of [README.md](../README.md).
 JUnit is the wedge because Java teams already trust tests as CI gates.
 
 ```java
-import static io.github.harikrishna8121999.mcpredteam.junit.McpSecurityAssertions.assertThat;
+import static io.github.mcpredteam.junit.McpSecurityAssertions.assertThat;
 
 ScanReport report = MetadataScanner.withDefaultRules().scan(tools);
 

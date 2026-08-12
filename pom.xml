@@ -3,14 +3,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.github.harikrishna8121999</groupId>
+    <groupId>io.github.mcpredteam</groupId>
     <artifactId>mcp-redteam-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>MCP RedTeam JUnit</name>
     <description>JUnit-native security testing for MCP servers and MCP-connected Java agents.</description>
-    <url>https://github.com/harikrishna8121999/mcp-redteam-junit</url>
+    <url>https://github.com/mcpredteam/mcp-redteam-junit</url>
 
     <licenses>
         <license>
@@ -29,15 +29,15 @@
     </developers>
 
     <scm>
-        <connection>scm:git:https://github.com/harikrishna8121999/mcp-redteam-junit.git</connection>
-        <developerConnection>scm:git:git@github.com:harikrishna8121999/mcp-redteam-junit.git</developerConnection>
-        <url>https://github.com/harikrishna8121999/mcp-redteam-junit</url>
+        <connection>scm:git:https://github.com/mcpredteam/mcp-redteam-junit.git</connection>
+        <developerConnection>scm:git:git@github.com:mcpredteam/mcp-redteam-junit.git</developerConnection>
+        <url>https://github.com/mcpredteam/mcp-redteam-junit</url>
         <tag>HEAD</tag>
     </scm>
 
     <issueManagement>
         <system>GitHub Issues</system>
-        <url>https://github.com/harikrishna8121999/mcp-redteam-junit/issues</url>
+        <url>https://github.com/mcpredteam/mcp-redteam-junit/issues</url>
     </issueManagement>
 
     <modules>

@@ -12,7 +12,7 @@ Tool poisoning, schema poisoning, tool shadowing and canary exfiltration — che
 
 ```xml
 <dependency>
-    <groupId>io.github.harikrishna8121999</groupId>
+    <groupId>io.github.mcpredteam</groupId>
     <artifactId>mcp-redteam-junit</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <scope>test</scope>
@@ -20,7 +20,7 @@ Tool poisoning, schema poisoning, tool shadowing and canary exfiltration — che
 ```
 
 ```java
-import static io.github.harikrishna8121999.mcpredteam.junit.McpSecurityAssertions.assertThat;
+import static io.github.mcpredteam.junit.McpSecurityAssertions.assertThat;
 
 @Test
 void connectedMcpServersExposeNoPoisonedToolMetadata() {
