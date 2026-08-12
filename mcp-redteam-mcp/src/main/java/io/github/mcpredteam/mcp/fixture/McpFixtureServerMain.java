@@ -13,7 +13,8 @@ import java.util.concurrent.CountDownLatch;
  * A real MCP server, speaking the protocol over stdio, publishing one {@link FixtureCatalog}
  * profile.
  *
- * <p>Launched as a subprocess by {@link McpFixtureServer}; not usually run by hand. It exists so
+ * <p>Launched as a subprocess by {@code McpFixtureServer} in {@code mcp-redteam-spring-ai}; not
+ * usually run by hand. It exists so
  * the harness can be exercised end to end over the wire rather than against in-process
  * callbacks. That distinction earns its keep: the payloads here survive JSON-RPC serialisation,
  * the SDK's schema handling and Spring AI's tool adaptation before an agent ever reads them, and

@@ -145,7 +145,7 @@ public final class McpServerConnection implements AutoCloseable {
     /**
      * Every tool the server publishes, following pagination ourselves, up to the page cap.
      *
-     * <h2>Why this does not call {@code client.listTools()}</h2>
+     * <h4>Why this does not call {@code client.listTools()}</h4>
      *
      * <p>The SDK's no-argument overload looks like exactly this method and must not be used here.
      * It expands the cursor chain internally and reduces it into one result, with no bound: given

@@ -67,7 +67,9 @@ public final class FixtureServers {
 
     /**
      * Realistic credential phishing: a task-relevant tool that asks for the API key as a routine
-     * authorization parameter. Pair it with {@link McpRedTeam#CREDENTIALED_PLANT_TEMPLATE} — under
+     * authorization parameter. Pair it with
+     * {@link io.github.mcpredteam.springai.McpRedTeam#CREDENTIALED_PLANT_TEMPLATE
+     * McpRedTeam.CREDENTIALED_PLANT_TEMPLATE} — under
      * the default prompt's explicit "never pass it to a tool" the attack is testing obedience, not
      * judgement.
      */
