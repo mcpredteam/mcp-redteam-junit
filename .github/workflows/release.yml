@@ -1,0 +1,82 @@
+name: Release
+
+# Tag-driven, never push-driven. A version on Maven Central cannot be deleted, overwritten or
+# recalled, so publishing has to be a deliberate act: an accidental merge to main must not be
+# able to burn a version number permanently. Pushing a `v*` tag is that deliberate act.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to Maven Central
+    runs-on: ubuntu-latest
+
+    # Holds the Central token and the signing key. Gating them behind an environment keeps them
+    # unreachable from any other workflow, and lets a required reviewer be added later without
+    # touching this file.
+    environment: central
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+          # Writes a settings.xml whose <server> id matches <publishingServerId> in the parent pom.
+          server-id: central
+          server-username: MAVEN_CENTRAL_USERNAME
+          server-password: MAVEN_CENTRAL_PASSWORD
+          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      # The one mistake this workflow can make that cannot be undone: publishing a version that
+      # is not the one the tag names. Checked before anything is uploaded, not after.
+      - name: Check the tag against the project version
+        if: github.ref_type == 'tag'
+        run: |
+          version=$(mvn -B -q help:evaluate -Dexpression=project.version -DforceStdout)
+          tag=${GITHUB_REF_NAME#v}
+          echo "pom version: $version"
+          echo "tag:         $tag"
+          if [ "$version" != "$tag" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match project version $version."
+            exit 1
+          fi
+          case "$version" in
+            *-SNAPSHOT)
+              echo "::error::Refusing to publish a SNAPSHOT ($version) under a release tag."
+              exit 1
+              ;;
+          esac
+
+      # Runs the full build, including the 364 tests, before anything is uploaded. Tests tagged
+      # `live` stay excluded — they need a model provider and cost money.
+      - name: Build, test and publish
+        run: mvn -B --no-transfer-progress -Prelease deploy
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: '**/target/surefire-reports/'
+          retention-days: 7
+
+      - name: Where it went
+        run: |
+          echo "Uploaded and validated. It is NOT public yet."
+          echo "Review the deployment at https://central.sonatype.com/publishing/deployments"
+          echo "and press Publish there to release it permanently."
