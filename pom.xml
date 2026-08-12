@@ -202,6 +202,23 @@
                         </configuration>
                     </plugin>
 
+                    <!--
+                      Deliberately unconfigured. The plugin picks gpg's pinentry mode itself,
+                      from whether it has a passphrase: given one it asks for loopback mode and
+                      feeds the passphrase on stdin; given none it asks for "error" mode, so the
+                      build fails outright instead of blocking on a prompt no CI runner can
+                      answer.
+
+                      An earlier version set loopback mode here explicitly, via gpgArguments. It
+                      did nothing. The plugin appends its own copy of that flag later on the
+                      command line, and gpg honours the last occurrence, so the hand-written one
+                      was silently overridden in exactly the case it was meant to cover. Dead
+                      configuration that looks load-bearing is worse than none, so it is gone.
+
+                      The passphrase reaches the plugin through MAVEN_GPG_PASSPHRASE: set by the
+                      release workflow from the `central` environment, and set by hand for a
+                      local signing rehearsal.
+                    -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
@@ -213,17 +230,6 @@
                                 <goals>
                                     <goal>sign</goal>
                                 </goals>
-                                <configuration>
-                                    <!--
-                                      CI has no TTY, so gpg must take the passphrase on stdin
-                                      instead of trying to open a pinentry prompt that would
-                                      hang the job until it timed out.
-                                    -->
-                                    <gpgArguments>
-                                        <arg>--pinentry-mode</arg>
-                                        <arg>loopback</arg>
-                                    </gpgArguments>
-                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
