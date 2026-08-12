@@ -146,6 +146,42 @@ most.
 Style: standard Java conventions, 4-space indent, no wildcard imports. There is no formatter
 plugin — match the surrounding code.
 
+## Releasing
+
+Maintainer-only, and recorded here because the steps have to be the same every time.
+
+Releases are driven by a **tag**, never by a push to `main`. A version on Maven Central cannot
+be deleted, overwritten or recalled — so an accidental merge must not be able to spend a version
+number. Pushing `v0.1.0` is the deliberate act that publishes; merging is not.
+
+There is no release branch. One version line, one maintainer, no backports: a release branch
+would be ceremony with nothing to hold. `maven-release-plugin` is not used either, because it
+pushes commits straight to `main`, which branch protection rejects — and working around that
+means handing a bot the bypass that protection exists to deny.
+
+1. **Release PR.** Drop `-SNAPSHOT` from `<version>` in the parent pom, add the
+   [CHANGELOG.md](CHANGELOG.md) entry, and update the README banner if the release changes
+   whether the coordinate resolves. Merge it.
+2. **Tag the merge commit** — `git tag v0.1.0 && git push origin v0.1.0`. This fires
+   [`release.yml`](.github/workflows/release.yml), which refuses the tag if it disagrees with
+   the pom version or if the version is still a snapshot, then runs the full test suite before
+   uploading anything.
+3. **Publish by hand.** The upload stops at *validated* and waits at
+   [central.sonatype.com/publishing/deployments](https://central.sonatype.com/publishing/deployments).
+   Nothing is public until someone presses Publish there. `autoPublish` stays `false` until
+   several releases have gone out without surprises; the cost of an unreviewed mistake is
+   permanent, and no amount of saved clicking is worth it.
+4. **Reopen the version.** A follow-up PR sets the next `-SNAPSHOT`.
+
+Rehearse against the Portal's snapshot repository before the first real release. It exercises
+the token, the signing key and the bundle layout with nothing at stake, which is the only part
+of this that has never been tested.
+
+The workflow reads four secrets from the `central` GitHub Environment: `MAVEN_CENTRAL_USERNAME`
+and `MAVEN_CENTRAL_PASSWORD` (a Portal user token, not the account password),
+`MAVEN_GPG_PRIVATE_KEY` and `MAVEN_GPG_PASSPHRASE`. Give the signing key a long expiry or no
+expiry — a lapsed key locks the project out of releasing, and the fix is slow.
+
 ## Licensing of contributions
 
 By submitting a pull request you agree that your contribution is licensed under the

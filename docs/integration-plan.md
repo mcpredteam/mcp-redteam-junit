@@ -10,9 +10,10 @@
    nothing covered, and it needed the protocol client that had just landed.
 4. ~~**Reports** (JSON, then JUnit XML)~~ — **built**, see below. Rates get an artifact too,
    which is what the "rates, not verdicts" argument needed to be worth anything.
-5. LangChain4j harness — now that Spring AI demonstrably works.
-6. CLI — for CI and non-Java targets.
-7. Runtime guardrails/gateway — v2, a different product.
+5. **Maven Central release** — machinery built, not yet fired. See below.
+6. LangChain4j harness — now that Spring AI demonstrably works.
+7. CLI — for CI and non-Java targets.
+8. Runtime guardrails/gateway — v2, a different product.
 
 The differentiator led deliberately: the static scanner and protocol client are the
 commoditized half, and the dynamic harness carried all the technical risk. See the Roadmap
@@ -359,6 +360,33 @@ avoid.
 description all serialize through the same schema. A consumer writes one parser. This was not
 designed for reports — it fell out of `ScanReport` being the shared result type — but it is the
 main reason the reporting layer stayed small.
+
+## Maven Central release — machinery built
+
+Five artifacts publish, not four: the parent pom is a coordinate consumers resolve, so it goes
+too. The `release` profile adds the sources jar, the javadoc jar and a detached GPG signature
+over each — all three are Central requirements, and none of them belong in the build a
+contributor runs.
+
+Two things were decided rather than inherited.
+
+**The namespace moved before the first release, not after.** Packages were
+`io.github.harikrishna8121999.mcpredteam.*` — five segments, one of them a personal username, on
+a library aimed at enterprise Java teams. A Maven groupId and a Java package are independent:
+Central verifies the coordinate and never inspects package names, so the two could have stayed
+mismatched indefinitely. They did not, because a published version is immutable. Renaming cost
+one mechanical commit while nothing had shipped; after 0.1.0 it would have cost a permanent
+breaking change and an orphaned coordinate.
+
+**Publishing is tag-driven and stops short of public.** `autoPublish` is `false`, so
+`mvn -Prelease deploy` uploads and validates but leaves the deployment sitting in the Portal for
+a human to release. The asymmetry justifies it: a held deployment costs one click, and a wrong
+one that went out automatically cannot be withdrawn at any price. The release workflow refuses a
+tag that disagrees with the pom version, or any version still carrying `-SNAPSHOT`, before it
+uploads rather than after.
+
+Not yet done: nothing has actually been published. The credential path, the signing key and the
+bundle layout are untested until a snapshot rehearsal runs against the Portal.
 
 ## LangChain4j — later
 
