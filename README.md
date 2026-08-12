@@ -5,11 +5,6 @@ JUnit-native security testing for MCP servers and MCP-connected Java agents.
 Tool poisoning, schema poisoning, tool shadowing and canary exfiltration — checked in
 `mvn test`, with no Python sidecar and no LLM API key for the static half.
 
-> **0.1.0 is being released.** The coordinate below resolves as soon as it appears on Maven
-> Central; until then, build from source with `mvn install` (JDK 21+). This note is removed by
-> the commit that opens the next snapshot — if you are reading it well after 0.1.0 shipped,
-> it is stale and the release is fine.
-
 ```xml
 <dependency>
     <groupId>io.github.mcpredteam</groupId>

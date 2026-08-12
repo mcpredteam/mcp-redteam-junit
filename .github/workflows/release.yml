@@ -58,6 +58,27 @@ jobs:
               ;;
           esac
 
+      # A rejected token surfaces at the end of the run as a 403 on transferring some .asc file,
+      # which points at signatures and permissions — none of which are the cause. Checking it
+      # here costs a second and names the actual problem.
+      - name: Check the Central token before building anything
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -u "$MAVEN_CENTRAL_USERNAME:$MAVEN_CENTRAL_PASSWORD" \
+            "https://central.sonatype.com/api/v1/publisher/deployments?page=0&size=1")
+          if [ "$code" != "200" ]; then
+            echo "::error::Central rejected the token (HTTP $code) - see the log for what to check."
+            echo "The secrets in the 'central' environment must be a Portal *user token*, not the"
+            echo "Sonatype login, and must be generated from the same sign-in account that owns"
+            echo "the io.github.mcpredteam namespace. The Portal treats GitHub sign-in and email"
+            echo "sign-in as separate accounts even for the same address."
+            exit 1
+          fi
+          echo "Central token accepted."
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+
       # Runs the full build, including the 364 tests, before anything is uploaded. Tests tagged
       # `live` stay excluded — they need a model provider and cost money.
       - name: Build, test and publish

@@ -166,12 +166,37 @@ means handing a bot the bypass that protection exists to deny.
    [`release.yml`](.github/workflows/release.yml), which refuses the tag if it disagrees with
    the pom version or if the version is still a snapshot, then runs the full test suite before
    uploading anything.
-3. **Publish by hand.** The upload stops at *validated* and waits at
+3. **Approve the deployment.** The job targets the `central` environment, which has a required
+   reviewer, so it starts in **`waiting`** and does nothing until approved. Open the run and use
+   **Review deployments → Approve and deploy**, or:
+
+   ```bash
+   run=$(gh run list --workflow=Release --limit 1 --json databaseId --jq '.[0].databaseId')
+   env=$(gh api repos/mcpredteam/mcp-redteam-junit/actions/runs/$run/pending_deployments \
+           --jq '.[0].environment.id')
+   gh api --method POST repos/mcpredteam/mcp-redteam-junit/actions/runs/$run/pending_deployments \
+     -f "state=approved" -F "environment_ids[]=$env" -f "comment=Release"
+   ```
+
+   > A waiting run reports no failure and no progress — it simply sits there, and Central shows
+   > no deployment because nothing has been uploaded. If a tag seems to have done nothing, check
+   > for a pending approval before assuming the workflow is broken.
+
+4. **Publish by hand.** The upload stops at *validated* and waits at
    [central.sonatype.com/publishing/deployments](https://central.sonatype.com/publishing/deployments).
    Nothing is public until someone presses Publish there. `autoPublish` stays `false` until
    several releases have gone out without surprises; the cost of an unreviewed mistake is
    permanent, and no amount of saved clicking is worth it.
-4. **Reopen the version.** A follow-up PR sets the next `-SNAPSHOT`.
+
+   A deployment that has not been published can be **dropped and re-uploaded at the same
+   version**. The number is not spent until Publish, so a rejected bundle costs a fix and a
+   re-tag, not a version.
+
+5. **Reopen the version.** A follow-up PR sets the next `-SNAPSHOT`, and removes the release
+   banner from `README.md`.
+
+So there are **three gates** between a merged PR and a public artifact: the tag you push, the
+deployment you approve, and the Publish you press. None of them fire on their own.
 
 Rehearse against the Portal's snapshot repository before the first real release. It exercises
 the token, the signing key and the bundle layout with nothing at stake, which is the only part
