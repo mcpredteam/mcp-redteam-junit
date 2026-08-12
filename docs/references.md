@@ -12,6 +12,13 @@ source rather than taking a rule's word for it.
   `Finding`; no parallel taxonomy is invented. Tool poisoning is **MCP03**, with rug pulls,
   schema poisoning and tool shadowing as sub-techniques.
 
+  Read against **version 0.1 (2025)**, ids `MCP01:2025`–`MCP10:2025`. The project is still in
+  beta, with a further release scheduled for October 2026 and the rankings explicitly expected
+  to move. That is why `ThreatType.TAXONOMY_VERSION` exists and why every report stamps it: an
+  id alone does not survive a renumbering, and a stored artifact saying only `MCP03` would
+  change meaning while sitting unchanged in someone's repository. Bump the constant and the ids
+  together when the taxonomy re-releases.
+
 - **MCPTox: A Benchmark for Tool Poisoning on Real-World MCP Servers** (AAAI)
   - https://arxiv.org/abs/2508.14925
   - https://ojs.aaai.org/index.php/AAAI/article/view/40895
@@ -124,3 +131,8 @@ Existing MCP scanners — [mcp-scan](https://invariantlabs.ai/blog/introducing-m
 [mcp-shield](https://github.com/riseandignite/mcp-shield) — cover static metadata scanning,
 and cover it well. `README.md` says plainly where this project overlaps with them and where
 it does not.
+
+As of August 2026, mcp-scan is part of Snyk and promptfoo is part of OpenAI. Noted because it
+bears on how the positioning should be read: both are now backed by companies with distribution,
+which makes the "static scanning is table stakes" call in [strategy.md](strategy.md) more true
+rather than less, and makes any claim to being the only option worse than merely inaccurate.

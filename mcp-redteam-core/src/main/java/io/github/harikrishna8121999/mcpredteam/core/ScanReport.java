@@ -10,11 +10,23 @@ import java.util.Optional;
 
 public record ScanReport(Instant startedAt, Instant finishedAt, int toolsScanned, List<Finding> findings) {
 
+    /**
+     * Most severe first, then most confident, then alphabetically.
+     *
+     * <p>The trailing location and dedupe-key comparisons look redundant next to rule id and
+     * target, and are not: without them two findings from the same rule against the same tool —
+     * one per poisoned parameter, which is the common case — compare equal, and their order is
+     * then whatever the sort happened to do. That is invisible in a failure message and very
+     * visible in a report file, where it would show up as a spurious diff between two runs over
+     * identical input. Reports are meant to be diffable, so the order is total.
+     */
     private static final Comparator<Finding> BY_RISK = Comparator
             .comparing(Finding::severity).reversed()
             .thenComparing(Comparator.comparing(Finding::confidence).reversed())
             .thenComparing(Finding::target)
-            .thenComparing(Finding::ruleId);
+            .thenComparing(Finding::ruleId)
+            .thenComparing(Finding::location)
+            .thenComparing(Finding::dedupeKey);
 
     public ScanReport {
         findings = findings == null ? List.of() : List.copyOf(findings);
@@ -55,6 +67,23 @@ public record ScanReport(Instant startedAt, Instant finishedAt, int toolsScanned
     /** Findings ordered most severe first, then most confident first. */
     public List<Finding> byRisk() {
         return findings.stream().sorted(BY_RISK).toList();
+    }
+
+    /**
+     * The same scan carrying only the findings that meet both thresholds.
+     *
+     * <p>For writing a report that matches the gate a test applies. A report is a record of what
+     * was found, so the formats never filter on their own — but a team gating at
+     * {@code HIGH}/{@code FIRM} and publishing a report full of {@code TENTATIVE} noise will stop
+     * reading the report, and then it is not there when it matters.
+     *
+     * <p>{@link #toolsScanned()} and the timings are carried over unchanged: they describe the
+     * scan, which is the same scan. Recomputing them from the surviving findings would report
+     * that fewer tools were examined than really were.
+     */
+    public ScanReport filteredTo(Severity severityThreshold, Confidence confidenceThreshold) {
+        return new ScanReport(startedAt, finishedAt, toolsScanned,
+                findingsAtOrAbove(severityThreshold, confidenceThreshold));
     }
 
     public Optional<Severity> highestSeverity() {

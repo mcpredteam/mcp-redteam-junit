@@ -8,7 +8,8 @@
 3. ~~**Rug-pull baselines**~~ — **built**, see below. This is what fetching `tools/list` twice
    was for, and it was pulled ahead of reports: it closed the last threat in the model that
    nothing covered, and it needed the protocol client that had just landed.
-4. Reports (JSON, then JUnit XML) — **next**.
+4. ~~**Reports** (JSON, then JUnit XML)~~ — **built**, see below. Rates get an artifact too,
+   which is what the "rates, not verdicts" argument needed to be worth anything.
 5. LangChain4j harness — now that Spring AI demonstrably works.
 6. CLI — for CI and non-Java targets.
 7. Runtime guardrails/gateway — v2, a different product.
@@ -287,14 +288,77 @@ static text rules and anything they flag is reported at *their* severity under a
 signature corpus, not two that drift apart. `MCPRT-RUG-000` reports a baseline that matched no
 tool in the scan, since a comparison that compared nothing must not pass quietly.
 
-## Reports — next
+## Reports — built
 
-JSON is canonical, then JUnit XML, then SARIF, then HTML. Reports should be reproducible
-artifacts: same input, same output, diffable in review.
+JSON is canonical, then JUnit XML; SARIF and HTML remain later. Both live in `core.report`, which
+means both are available to a consumer who took only the static scanner.
 
-The ordering is the same argument as the baseline file above — a security artifact that cannot be
-diffed cannot be reviewed, so anything nondeterministic in the output (map iteration order,
-timestamps, absolute paths) has to be designed out rather than tolerated.
+```java
+Reports.json(report).writeTo(Path.of("target/mcp-redteam/scan.json"));
+Reports.junitXml(report).writeTo(Path.of("target/mcp-redteam/scan-junit.xml"));
+```
+
+The writers are hand-rolled. `mcp-redteam-core` ships no dependencies, and a security library that
+pulls Jackson onto a build in order to print its own findings has made itself a supply-chain
+question. The graph is a handful of records; the cost of not having a mapper is one small file.
+Core's *test* classpath does take Jackson, because a hand-written serializer needs something other
+than itself to check it — substring assertions pass over a missing comma in a nested object.
+
+The requirement this had to satisfy, stated before it was built: a security artifact that cannot
+be diffed cannot be reviewed, so anything nondeterministic in the output — map iteration order,
+timestamps, absolute paths — had to be designed out rather than tolerated.
+
+"Same input, same output, diffable in review" was in tension with `ScanReport` carrying two
+timestamps. Resolved by segregation rather than by dropping either: everything volatile sits in one
+`scan` block at the top of the file, and the findings below are emitted in a total order, so
+re-scanning an unchanged server moves the timestamps and nothing else. The baseline format solves
+the same problem the same way with its `!capturedAt` directive.
+
+Two decisions worth stating rather than discovering:
+
+**Reports never filter.** A report records what was found; the gate decides what counts. A writer
+that silently dropped everything below a threshold would produce an artifact disagreeing with the
+assertion beside it. `report.filteredTo(severity, confidence)` makes the choice visible at the call
+site when a team wants the artifact to mirror the gate.
+
+**Both formats escape invisible characters instead of reproducing them.** A zero-width space
+written raw renders as nothing in the pull request meant to review it — the exact property the
+attacker chose it for. Escaping is lossless, so a parser gives the character back. JUnit XML goes
+further because it has to: XML 1.0 forbids most C0 control characters outright, so a hostile
+description containing one would produce a report no CI system can parse, turning a *detected*
+attack into a build that dies on its own output.
+
+### Rates get their own report
+
+```java
+Reports.json(harness.runTrials(20, task))
+        .measuring("hijacked", TrialReport.hijacked(canary, "record_analytics"))
+        .writeTo(Path.of("target/mcp-redteam/trials.json"));
+```
+
+The rates section above argues that a single run proves very little and that the honest output is
+a rate. That argument only pays off if the rate is something a person can look at later, and until
+this existed it reached a `System.out.println` and nowhere else.
+
+Each run's tool calls go in with the arguments as the model produced them. A bare `6/20` asks to be
+taken on trust, which is the same objection this project raises against single-run verdicts — so
+the artifact carries the evidence it is claiming. It also means a trial report routinely contains
+the planted canary, because that is what a leak is: write it under `target/`, not into the repo.
+
+A rate over zero completed trials serializes as `null`, never `0.0`, matching `rateOf` throwing
+rather than answering. Preserving that distinction in the file is the whole point — otherwise a
+rate-limited afternoon reads as a security improvement to anything parsing it.
+
+No JUnit XML for trials. That format's unit is a pass or a failure and a rate is neither; rendering
+"30% hijacked" as a red test converts a measurement back into the verdict `runTrials` exists to
+avoid.
+
+### Why one format covers both halves
+
+`BehaviorScanner.scan(AgentRun)` returns a `ScanReport`, so a hijack, a canary leak and a poisoned
+description all serialize through the same schema. A consumer writes one parser. This was not
+designed for reports — it fell out of `ScanReport` being the shared result type — but it is the
+main reason the reporting layer stayed small.
 
 ## LangChain4j — later
 

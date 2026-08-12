@@ -6,11 +6,14 @@
 Live server -> tools/list -> ToolDefinition                             (protocol, built)
 Tool definitions -> MetadataRule -> Finding -> ScanReport -> Assertion   (static, built)
 Fixture server -> Agent -> AgentRun -> BehaviorRule -> ScanReport        (dynamic, built)
+ScanReport -> Reports.json / Reports.junitXml -> artifact                (reporting, built)
+TrialReport -> Reports.json().measuring(...) -> rate + traces            (reporting, built)
 ```
 
 Both halves converge on `ScanReport`, so findings from either sort, threshold and render
 through one set of assertions. A team already gating on a scan report gets the dynamic gate
-without learning a second vocabulary.
+without learning a second vocabulary — and, because reporting hangs off the same type, a hijack
+and a poisoned description serialize into one schema rather than two.
 
 | Concept | Meaning |
 | --- | --- |
@@ -129,6 +132,11 @@ io.github.harikrishna8121999.mcpredteam.core.behavior
 
 io.github.harikrishna8121999.mcpredteam.core.fixture
   PoisonedToolFixtures  BenignToolFixtures
+
+io.github.harikrishna8121999.mcpredteam.core.report
+  Reports  Report        // json / junitXml, render() or writeTo(Path)
+  TrialJson             // rates + per-run traces; .measuring(name, predicate)
+  JsonFormat  JUnitXmlFormat  JsonWriter  BuildInfo
 
 io.github.harikrishna8121999.mcpredteam.junit
   McpSecurityAssertions  ScanReportAssert  CanaryAssert  AgentRunAssert

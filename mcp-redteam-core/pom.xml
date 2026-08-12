@@ -19,5 +19,48 @@
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!--
+          Test scope only. This module ships no dependencies and that is deliberate, but the JSON
+          report is written by hand for exactly that reason, and a hand-written serializer needs
+          to be checked by something that is not itself. Asserting on substrings would pass over
+          a missing comma in a nested object; parsing the output back catches it. Never leaves
+          test scope, so a consumer's classpath is unchanged.
+
+          Jackson 3 (tools.jackson), matching the rest of the build - see the note in
+          mcp-redteam-spring-ai/pom.xml about the two majors coexisting.
+        -->
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <build>
+        <resources>
+            <!--
+              Only the build-info file is filtered, and it is named explicitly rather than
+              filtering the whole directory. Filtering is a substitution pass over file content:
+              turned on broadly it would rewrite any `${...}` sequence in any resource added
+              later. This module's other resources are attack fixtures, where silently rewriting
+              the payload would corrupt the corpus in a way the tests would not obviously catch.
+            -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/mcp-redteam-build.properties</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>**/mcp-redteam-build.properties</exclude>
+                </excludes>
+            </resource>
+        </resources>
+    </build>
 </project>
