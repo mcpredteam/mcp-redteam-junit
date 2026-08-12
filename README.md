@@ -182,7 +182,7 @@ Point it at a URL. No agent, no model, no API key — this is the cheap gate, an
 try (McpServerConnection vendor = McpServerConnection.connect(
         "invoice-insights", McpServerTarget.streamableHttp("https://mcp.vendor.example/mcp"))) {
 
-    assertThatScan(vendor.scan()).hasNoFindingsAtOrAbove(Severity.HIGH);
+    assertThat(vendor.scan()).hasNoFindingsAtOrAbove(Severity.HIGH);
 }
 ```
 
@@ -301,7 +301,7 @@ ServerFingerprint approved = Baseline.read(Path.of("src/test/resources/vendor-ba
 try (McpServerConnection vendor = McpServerConnection.connect(
         "invoice-insights", McpServerTarget.streamableHttp("https://mcp.vendor.example/mcp"))) {
 
-    assertThatScan(vendor.scanAgainst(approved)).hasNoFindingsAtOrAbove(Severity.HIGH);
+    assertThat(vendor.scanAgainst(approved)).hasNoFindingsAtOrAbove(Severity.HIGH);
 }
 ```
 
@@ -412,7 +412,7 @@ Issues and milestones carry the current state.
 - [Strategy](docs/strategy.md) — positioning, and what is honestly defensible about it
 - [Threat Model](docs/threat-model.md) — what is covered, and what a green build still does not mean
 - [Architecture](docs/architecture.md) — pipeline, package shape, design decisions worth keeping
-- [Integration Plan](docs/integration-plan.md) — JUnit today, Spring AI next
+- [Integration Plan](docs/integration-plan.md) — what is built, in what order, and why reports come next
 - [References](docs/references.md) — specs, standards and research each rule is built against
 
 ## Contributing

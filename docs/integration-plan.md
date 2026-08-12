@@ -3,12 +3,16 @@
 ## Priority order
 
 1. ~~**Spring AI dynamic harness**~~ — **built**, see below.
-2. ~~MCP protocol client (stdio + Streamable HTTP)~~ — **built**; `McpServerConnection` points the
-   same machinery at an arbitrary server rather than a `FixtureCatalog` profile.
-3. ~~Reports (JSON, then JUnit XML)~~ — **built**, see below.
-4. LangChain4j harness — now that Spring AI demonstrably works.
-5. CLI — for CI and non-Java targets.
-6. Runtime guardrails/gateway — v2, a different product.
+2. ~~**MCP protocol client** (stdio + Streamable HTTP)~~ — **built**, see below. Hand-built tool
+   definitions are no longer the only input; a scan can be pointed at a server URL.
+3. ~~**Rug-pull baselines**~~ — **built**, see below. This is what fetching `tools/list` twice
+   was for, and it was pulled ahead of reports: it closed the last threat in the model that
+   nothing covered, and it needed the protocol client that had just landed.
+4. ~~**Reports** (JSON, then JUnit XML)~~ — **built**, see below. Rates get an artifact too,
+   which is what the "rates, not verdicts" argument needed to be worth anything.
+5. LangChain4j harness — now that Spring AI demonstrably works.
+6. CLI — for CI and non-Java targets.
+7. Runtime guardrails/gateway — v2, a different product.
 
 The differentiator led deliberately: the static scanner and protocol client are the
 commoditized half, and the dynamic harness carried all the technical risk. See the Roadmap
@@ -181,17 +185,108 @@ Rates are computed over *completed* trials only, and `rateOf` throws rather than
 must not read as a security improvement. `TrialReportAssert` refuses to pass when trials failed
 unless `allowingIncompleteTrials()` says you looked at why.
 
-## LangChain4j — next
+## MCP protocol client — built
 
-MCP support and guardrails exist but the APIs differ enough to need a separate harness. The
-core observation model (`AgentRun`, `ToolCallObservation`, `BehaviorScanner`) is
-framework-agnostic and dependency-free, so a second harness only has to produce observations;
-every detector and assertion is already shared.
+`mcp-redteam-mcp`, built against MCP Java SDK 2.0. `McpServerConnection` completes the
+`initialize` handshake over stdio or Streamable HTTP and turns `tools/list` into
+`ToolDefinition`s, so the static scanner has a real server as an input:
 
-## CLI — deferred
+```java
+try (McpServerConnection vendor = McpServerConnection.connect(
+        "invoice-insights", McpServerTarget.streamableHttp("https://mcp.vendor.example/mcp"))) {
 
-Useful, but it should not lead the product. The wedge is `mvn test`; a CLI competes directly
-with mcp-scan and promptfoo on their own ground, where they are ahead.
+    assertThat(vendor.scan()).hasNoFindingsAtOrAbove(Severity.HIGH);
+}
+```
+
+No agent, no model, no API key — this is the cheap gate, and it needs `mcp-redteam-junit` and
+`mcp-redteam-mcp` only. That dependency profile is the reason it is **its own module rather than
+part of the Spring AI one**: the consumer of a `tools/list` scan is running static tests, and
+folding it into `mcp-redteam-spring-ai` would bill them a model provider to run a scan that never
+calls a model.
+
+### Three things that had to be decided rather than inherited
+
+**The server does not get to name itself.** The label passed to `connect` is the harness's, and
+every finding is reported against it. What a server returns in `initialize` is a claim, not an
+identity; a report that repeated it back would launder a hostile server's chosen branding into
+evidence.
+
+**Pagination is capped.** The SDK's no-argument `listTools()` follows the whole cursor chain, and
+the chain is driven entirely by the server — one that always returns one more cursor keeps the
+client asking until the heap goes. That turns "scan this server" into a hang with no output, so
+`DEFAULT_MAX_PAGES` stops at twenty: far past any honest server, far short of a problem. Same
+reasoning as `SchemaWalker`'s depth cap, and the same class of bug.
+
+**A failed handshake closes the client.** Otherwise it leaks the subprocess or the HTTP session,
+and a suite that scans several servers accumulates one orphan per unreachable target.
+
+### What this path can see that Spring AI cannot
+
+MCP tool annotations. Spring AI's tool model has no field for `destructiveHint`, so `MCPRT-CAP`
+could never be satisfied there; from `tools/list` it can, and absence stays distinguishable from
+`false`. Those mean opposite things — a server that declined to declare a hint versus one that
+made a checkable claim — and until now they had the same symptom.
+
+### Scanning a stdio server is weaker than it looks
+
+`McpServerTarget.stdio("npx", "-y", "@vendor/mcp-server")` scans a locally installed server, but
+launching one runs an arbitrary program with your privileges *before* `tools/list` can tell you
+anything about it. The scan is a strictly weaker safeguard than not running it, and the docs say
+so rather than letting a green stdio test imply otherwise.
+
+## Rug-pull baselines — built
+
+A scan says whether a server looks malicious today. It cannot say this is still the server that
+was approved — for that it has to remember. `core.fingerprint` records what a server published at
+approval time and `MCPRT-RUG` compares later scans against it. Capture once, review it, commit it:
+
+```java
+Baseline.write(vendor.captureBaseline(), Path.of("src/test/resources/vendor-baseline.txt"));
+```
+
+and from then on the test only reads:
+
+```java
+ServerFingerprint approved = Baseline.read(Path.of("src/test/resources/vendor-baseline.txt"));
+assertThat(vendor.scanAgainst(approved)).hasNoFindingsAtOrAbove(Severity.HIGH);
+```
+
+`RugPullRule` is an ordinary `MetadataRule` holding a baseline, so it composes into
+`MetadataScanner` beside the others rather than being a second scanning path.
+
+### The baseline is a review artifact, not a cache
+
+One sorted line per `tool`/`location`/digest, in a committed text file. A vendor changing a
+parameter description is then one line in a pull request diff, sitting next to the review that
+decided to trust it in the first place — which is the actual control. The file format therefore
+gets treated as adversarial input in both directions: tool names and locations are
+attacker-controlled, so `BaselineFormat` escapes them to printable ASCII on the way out (a
+property name carrying a newline would otherwise forge lines in a file this code parses back),
+parses strictly, and repairs nothing.
+
+The digest is over **raw** metadata, unlike every other rule in the library. Hashing normalized
+text would fold a Cyrillic `а` onto `a` before the digest, leaving a homoglyph rename of a
+trusted tool with an unmoved fingerprint — the normalization that makes the text rules
+evasion-resistant makes a fingerprint blind.
+
+### Two refusals, both deliberate
+
+**Capture refuses a server that already fails the scan.** A baseline is trust on first use, so
+taking one from a poisoned server records the poison as trusted, and the check then fires only if
+the attacker cleans up. `UntrustedBaselineException` carries the report that refused it; an
+accepted finding is suppressed by rule id on the gating scanner, where a reviewer can see the
+decision.
+
+**There is no capture-if-missing convenience**, however much it would smooth the first run. It
+would baseline whatever is being served on the first CI run, and a check that re-baselines itself
+whenever it has nothing to compare against can never fail.
+
+Drift alone is MEDIUM, because vendors ship features. Changed locations are re-scanned by the
+static text rules and anything they flag is reported at *their* severity under a composite id
+(`MCPRT-RUG-001/MCPRT-INJ-001`) — the same delegation `MCPRT-TRI` uses, for the same reason: one
+signature corpus, not two that drift apart. `MCPRT-RUG-000` reports a baseline that matched no
+tool in the scan, since a comparison that compared nothing must not pass quietly.
 
 ## Reports — built
 
@@ -208,6 +303,10 @@ pulls Jackson onto a build in order to print its own findings has made itself a 
 question. The graph is a handful of records; the cost of not having a mapper is one small file.
 Core's *test* classpath does take Jackson, because a hand-written serializer needs something other
 than itself to check it — substring assertions pass over a missing comma in a nested object.
+
+The requirement this had to satisfy, stated before it was built: a security artifact that cannot
+be diffed cannot be reviewed, so anything nondeterministic in the output — map iteration order,
+timestamps, absolute paths — had to be designed out rather than tolerated.
 
 "Same input, same output, diffable in review" was in tension with `ScanReport` carrying two
 timestamps. Resolved by segregation rather than by dropping either: everything volatile sits in one
@@ -260,3 +359,15 @@ avoid.
 description all serialize through the same schema. A consumer writes one parser. This was not
 designed for reports — it fell out of `ScanReport` being the shared result type — but it is the
 main reason the reporting layer stayed small.
+
+## LangChain4j — later
+
+MCP support and guardrails exist but the APIs differ enough to need a separate harness. The
+core observation model (`AgentRun`, `ToolCallObservation`, `BehaviorScanner`) is
+framework-agnostic and dependency-free, so a second harness only has to produce observations;
+every detector and assertion is already shared.
+
+## CLI — deferred
+
+Useful, but it should not lead the product. The wedge is `mvn test`; a CLI competes directly
+with mcp-scan and promptfoo on their own ground, where they are ahead.
