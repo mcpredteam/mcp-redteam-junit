@@ -7,12 +7,13 @@ Tool poisoning, schema poisoning, tool shadowing and canary exfiltration — che
 
 > **Not published yet.** There is no Maven Central release, so this coordinate will not
 > resolve. Build from source with `mvn install` (JDK 21+) if you want to try it today.
-> Everything in the table below is built and tested; publishing waits on the release
-> housekeeping, not on the code.
+> Everything in the table below is built and tested. The publishing machinery now exists —
+> signed artifacts, a tag-driven [release workflow](.github/workflows/release.yml) — so what
+> is left is pressing the button, not writing anything.
 
 ```xml
 <dependency>
-    <groupId>io.github.harikrishna8121999</groupId>
+    <groupId>io.github.mcpredteam</groupId>
     <artifactId>mcp-redteam-junit</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <scope>test</scope>
@@ -20,7 +21,7 @@ Tool poisoning, schema poisoning, tool shadowing and canary exfiltration — che
 ```
 
 ```java
-import static io.github.harikrishna8121999.mcpredteam.junit.McpSecurityAssertions.assertThat;
+import static io.github.mcpredteam.junit.McpSecurityAssertions.assertThat;
 
 @Test
 void connectedMcpServersExposeNoPoisonedToolMetadata() {
@@ -401,9 +402,13 @@ baseline, and `MCPRT-RUG` when a trusted server starts saying something else. Th
 last threat in the model that nothing covered.
 
 JSON and JUnit XML reports came after that, so a scan produces an artifact and not just a failure
-message. Next is a Maven Central release. LangChain4j, SARIF and a CLI are deliberately later; the
-observation model is framework-agnostic, so a second harness only has to produce observations and
-inherits every detector.
+message.
+
+The Maven Central release is next and mostly assembled: the namespace moved to
+`io.github.mcpredteam`, signed sources and javadoc jars build, and a tag drives the publish. See
+the Releasing section of [CONTRIBUTING.md](CONTRIBUTING.md) for how a version actually goes out.
+LangChain4j, SARIF and a CLI are deliberately later; the observation model is framework-agnostic,
+so a second harness only has to produce observations and inherits every detector.
 
 Issues and milestones carry the current state.
 

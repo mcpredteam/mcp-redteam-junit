@@ -3,14 +3,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.github.harikrishna8121999</groupId>
+    <groupId>io.github.mcpredteam</groupId>
     <artifactId>mcp-redteam-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>MCP RedTeam JUnit</name>
     <description>JUnit-native security testing for MCP servers and MCP-connected Java agents.</description>
-    <url>https://github.com/harikrishna8121999/mcp-redteam-junit</url>
+    <url>https://github.com/mcpredteam/mcp-redteam-junit</url>
 
     <licenses>
         <license>
@@ -29,15 +29,15 @@
     </developers>
 
     <scm>
-        <connection>scm:git:https://github.com/harikrishna8121999/mcp-redteam-junit.git</connection>
-        <developerConnection>scm:git:git@github.com:harikrishna8121999/mcp-redteam-junit.git</developerConnection>
-        <url>https://github.com/harikrishna8121999/mcp-redteam-junit</url>
+        <connection>scm:git:https://github.com/mcpredteam/mcp-redteam-junit.git</connection>
+        <developerConnection>scm:git:git@github.com:mcpredteam/mcp-redteam-junit.git</developerConnection>
+        <url>https://github.com/mcpredteam/mcp-redteam-junit</url>
         <tag>HEAD</tag>
     </scm>
 
     <issueManagement>
         <system>GitHub Issues</system>
-        <url>https://github.com/harikrishna8121999/mcp-redteam-junit/issues</url>
+        <url>https://github.com/mcpredteam/mcp-redteam-junit/issues</url>
     </issueManagement>
 
     <modules>
@@ -73,6 +73,13 @@
              from the command line: POM configuration beats -D, so -DexcludedGroups= is silently
              ignored and the tests it was meant to enable simply do not run. -->
         <test.excludedGroups>live</test.excludedGroups>
+
+        <!-- Release tooling. Only the publishing plugin is active in an ordinary build; the rest
+             live in the `release` profile, because signing needs a GPG key no contributor has. -->
+        <central-publishing-plugin.version>0.11.0</central-publishing-plugin.version>
+        <source-plugin.version>3.4.0</source-plugin.version>
+        <javadoc-plugin.version>3.12.0</javadoc-plugin.version>
+        <gpg-plugin.version>3.2.8</gpg-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -118,5 +125,110 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+
+        <plugins>
+            <!--
+              Replaces maven-deploy-plugin: `mvn deploy` uploads a bundle to the Central Portal
+              rather than to a staging repository. Harmless in an ordinary build, which never
+              reaches the deploy phase.
+            -->
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>${central-publishing-plugin.version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central</publishingServerId>
+                    <!--
+                      A published version can never be deleted, overwritten or recalled. So the
+                      upload stops at "validated" and waits for a human to press publish in the
+                      Portal. Flip this to true only once several releases have gone out without
+                      surprises — the cost of an unreviewed mistake here is permanent.
+                    -->
+                    <autoPublish>false</autoPublish>
+                    <waitUntil>validated</waitUntil>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
+
+    <profiles>
+        <!--
+          Everything Central requires of a release but an ordinary build should not pay for:
+          a sources jar, a javadoc jar, and a detached GPG signature over each. Activated by
+          the release workflow (`mvn -Prelease deploy`), not by `mvn verify`.
+        -->
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>${source-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>${javadoc-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <!--
+                              `all` minus `missing`: broken @link targets, malformed HTML and
+                              heading-level jumps still fail the build — two of those were real
+                              and were fixed rather than silenced. What is suppressed is only the
+                              absence of a comment, which would otherwise block a release on
+                              ~70 accessors that document themselves. Tightening this to plain
+                              `all` is a worthwhile later pass, not a release gate.
+                            -->
+                            <doclint>all,-missing</doclint>
+                            <quiet>true</quiet>
+                        </configuration>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>${gpg-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <configuration>
+                                    <!--
+                                      CI has no TTY, so gpg must take the passphrase on stdin
+                                      instead of trying to open a pinentry prompt that would
+                                      hang the job until it timed out.
+                                    -->
+                                    <gpgArguments>
+                                        <arg>--pinentry-mode</arg>
+                                        <arg>loopback</arg>
+                                    </gpgArguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         **Not here:** a payload the scanner *should* have caught and didn't. That is a
-        detection bypass and goes through a [private advisory](https://github.com/harikrishna8121999/mcp-redteam-junit/security/advisories/new).
+        detection bypass and goes through a [private advisory](https://github.com/mcpredteam/mcp-redteam-junit/security/advisories/new).
 
         A finding on honest tool metadata is a **false positive** — use that template instead.
 

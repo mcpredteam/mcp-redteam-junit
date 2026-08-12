@@ -8,7 +8,7 @@ it against systems.
 
 Do **not** open a public issue for a security problem.
 
-- Preferred: [GitHub private security advisory](https://github.com/harikrishna8121999/mcp-redteam-junit/security/advisories/new)
+- Preferred: [GitHub private security advisory](https://github.com/mcpredteam/mcp-redteam-junit/security/advisories/new)
 - Alternative: harikrishnavshetty@gmail.com
 
 Please include the affected version or commit, a description of the impact, and the smallest

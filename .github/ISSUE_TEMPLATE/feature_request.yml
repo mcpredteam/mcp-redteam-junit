@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Please skim the **Scope** section of
-        [CONTRIBUTING.md](https://github.com/harikrishna8121999/mcp-redteam-junit/blob/main/CONTRIBUTING.md)
+        [CONTRIBUTING.md](https://github.com/mcpredteam/mcp-redteam-junit/blob/main/CONTRIBUTING.md)
         first. Runtime guardrails, generic LLM red teaming, a new threat taxonomy, and
         dependencies in `mcp-redteam-core` are all deliberately out of scope — an issue is
         still welcome, but expect that conversation.

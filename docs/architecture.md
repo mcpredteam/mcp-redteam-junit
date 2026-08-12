@@ -112,7 +112,7 @@ project.
 ## Package shape
 
 ```text
-io.github.harikrishna8121999.mcpredteam.core
+io.github.mcpredteam.core
   ThreatType  Severity  Confidence  Finding  ScanReport
   ToolDefinition  Canary
   AgentRun  ToolCallObservation  ToolCallOutcome
@@ -120,36 +120,36 @@ io.github.harikrishna8121999.mcpredteam.core
   TextNormalizer    // NFKC + invisible-strip + homoglyph fold
   McpSecurityScanner  MetadataScanner
 
-io.github.harikrishna8121999.mcpredteam.core.rule
+io.github.mcpredteam.core.rule
   MetadataRule  PerToolRule
   InstructionInjectionRule  HiddenUnicodeRule  EncodedPayloadRule
   ExfiltrationChannelRule   ToolShadowingRule  DestructiveCapabilityRule
 
-io.github.harikrishna8121999.mcpredteam.core.behavior
+io.github.mcpredteam.core.behavior
   BehaviorRule  BehaviorScanner
   ForbiddenToolCallRule  CanaryLeakRule
   ToolResultInjectionRule  ConfusedDeputyRule
 
-io.github.harikrishna8121999.mcpredteam.core.fixture
+io.github.mcpredteam.core.fixture
   PoisonedToolFixtures  BenignToolFixtures
 
-io.github.harikrishna8121999.mcpredteam.core.report
+io.github.mcpredteam.core.report
   Reports  Report        // json / junitXml, render() or writeTo(Path)
   TrialJson             // rates + per-run traces; .measuring(name, predicate)
   JsonFormat  JUnitXmlFormat  JsonWriter  BuildInfo
 
-io.github.harikrishna8121999.mcpredteam.junit
+io.github.mcpredteam.junit
   McpSecurityAssertions  ScanReportAssert  CanaryAssert  AgentRunAssert
 
-io.github.harikrishna8121999.mcpredteam.mcp             // MCP Java SDK 2.0, provided scope
+io.github.mcpredteam.mcp             // MCP Java SDK 2.0, provided scope
   McpServerTarget  McpServerConnection  McpToolDefinitions
-io.github.harikrishna8121999.mcpredteam.mcp.fixture
+io.github.mcpredteam.mcp.fixture
   FixtureCatalog  FixtureToolSpecifications  McpFixtureServerMain
 
-io.github.harikrishna8121999.mcpredteam.springai        // Spring AI 2.0, provided scope
+io.github.mcpredteam.springai        // Spring AI 2.0, provided scope
   McpRedTeam  ToolServer  RecordingToolCallback
   ToolCallRecorder  SpringToolDefinitions
-io.github.harikrishna8121999.mcpredteam.springai.fixture
+io.github.mcpredteam.springai.fixture
   FixtureServers  FixtureTool  McpFixtureServer
 ```
 
