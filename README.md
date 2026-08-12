@@ -5,17 +5,16 @@ JUnit-native security testing for MCP servers and MCP-connected Java agents.
 Tool poisoning, schema poisoning, tool shadowing and canary exfiltration — checked in
 `mvn test`, with no Python sidecar and no LLM API key for the static half.
 
-> **Not published yet.** There is no Maven Central release, so this coordinate will not
-> resolve. Build from source with `mvn install` (JDK 21+) if you want to try it today.
-> Everything in the table below is built and tested. The publishing machinery now exists —
-> signed artifacts, a tag-driven [release workflow](.github/workflows/release.yml) — so what
-> is left is pressing the button, not writing anything.
+> **0.1.0 is being released.** The coordinate below resolves as soon as it appears on Maven
+> Central; until then, build from source with `mvn install` (JDK 21+). This note is removed by
+> the commit that opens the next snapshot — if you are reading it well after 0.1.0 shipped,
+> it is stale and the release is fine.
 
 ```xml
 <dependency>
     <groupId>io.github.mcpredteam</groupId>
     <artifactId>mcp-redteam-junit</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -404,11 +403,13 @@ last threat in the model that nothing covered.
 JSON and JUnit XML reports came after that, so a scan produces an artifact and not just a failure
 message.
 
-The Maven Central release is next and mostly assembled: the namespace moved to
-`io.github.mcpredteam`, signed sources and javadoc jars build, and a tag drives the publish. See
-the Releasing section of [CONTRIBUTING.md](CONTRIBUTING.md) for how a version actually goes out.
-LangChain4j, SARIF and a CLI are deliberately later; the observation model is framework-agnostic,
-so a second harness only has to produce observations and inherits every detector.
+**0.1.0 is the first release**, under `io.github.mcpredteam`, on a JUnit 5 baseline. See the
+Releasing section of [CONTRIBUTING.md](CONTRIBUTING.md) for how a version goes out, and
+[CHANGELOG.md](CHANGELOG.md) for what is in this one.
+
+Next: JUnit 6 support, then a LangChain4j harness. SARIF and a CLI are deliberately later. The
+observation model is framework-agnostic, so a second harness only has to produce observations
+and inherits every detector.
 
 Issues and milestones carry the current state.
 
