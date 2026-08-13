@@ -45,3 +45,28 @@ jobs:
           name: surefire-reports-jdk${{ matrix.java }}
           path: '**/target/surefire-reports/'
           retention-days: 7
+
+  # The example is documentation that executes, which is the only kind that cannot go stale
+  # unnoticed. It resolves the *published* coordinates from Central rather than this build's
+  # output, so this job also re-verifies that 0.1.0 is still resolvable and still works.
+  #
+  # Only the scanning example runs here: examples/agent needs a model, and every test in it is
+  # tagged `live` and excluded from `mvn test` for exactly that reason.
+  example:
+    name: Example project (scan-only)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      - name: Run the example
+        working-directory: examples/scan-only
+        run: mvn -B --no-transfer-progress test

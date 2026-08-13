@@ -1,0 +1,148 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Standalone on purpose. See ../scan-only/pom.xml for why. -->
+    <groupId>com.example</groupId>
+    <artifactId>notes-agent-example</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <name>MCP RedTeam example — agent in the loop</name>
+    <description>
+        Driving a real Spring AI agent against a poisoned MCP server, and showing a tool-trust
+        policy stop it. Needs a model; everything here is tagged `live`.
+    </description>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <mcp-redteam.version>0.1.0</mcp-redteam.version>
+        <spring-ai.version>2.0.0</spring-ai.version>
+        <mcp-sdk.version>2.0.0</mcp-sdk.version>
+        <junit.version>5.11.4</junit.version>
+
+        <!--
+          Indirected through a property because a literal inside the plugin's <configuration>
+          cannot be overridden from the command line at all: POM configuration beats -D. Activate
+          the `live` profile to clear it.
+        -->
+        <test.excludedGroups>live</test.excludedGroups>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.mcpredteam</groupId>
+            <artifactId>mcp-redteam-junit</artifactId>
+            <version>${mcp-redteam.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+          The agent-in-the-loop harness.
+
+          Everything it needs at runtime — Spring AI, the MCP SDK — it declares as `provided`, on
+          the reasoning that a team running an agent has already pinned those. That is the right
+          call for a test library, and the four dependencies after this one are the bill it hands
+          you. Get it wrong and you get a NoClassDefFoundError when a test runs, not a resolution
+          error when the build starts.
+
+          Compare ../scan-only, which needs none of this. That difference is why the protocol
+          client is its own module rather than part of this one.
+        -->
+        <dependency>
+            <groupId>io.github.mcpredteam</groupId>
+            <artifactId>mcp-redteam-spring-ai</artifactId>
+            <version>${mcp-redteam.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- ChatClient itself. Not transitive from spring-ai-ollama: the model module depends on
+             spring-ai-model, while the fluent client lives in its own artifact that normally only
+             the Boot starter pulls in. -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-client-chat</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- The model provider. Swap this for spring-ai-openai, spring-ai-anthropic or whatever
+             you already run; only LocalAgent changes. Ollama is used here because measuring a
+             hijack rate means running the same task twenty times, and a per-token bill is exactly
+             the pressure that turns a rate back into one reassuring run. -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-ollama</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- SyncMcpToolCallbackProvider, for tools discovered from a live MCP server. -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-mcp</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp</artifactId>
+            <version>${mcp-sdk.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <profiles>
+        <!--
+          `mvn test -Plive` runs the model-backed tests. Preferred over -Dtest.excludedGroups=
+          because PowerShell mangles a -D argument that contains a dot or ends in a bare `=`,
+          splitting it in two and leaving Maven to complain about an unknown lifecycle phase.
+          A profile id has neither problem.
+        -->
+        <profile>
+            <id>live</id>
+            <properties>
+                <test.excludedGroups/>
+            </properties>
+        </profile>
+    </profiles>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+                <configuration>
+                    <!--
+                      Tests needing a running model are tagged `live` and excluded here, so that a
+                      plain `mvn test` stays green on a machine with no Ollama. The exclusion
+                      lives in the build rather than in an @Disabled per class, because that kind
+                      rots: someone adds a test, forgets the annotation, and CI quietly starts
+                      depending on a model being up.
+                    -->
+                    <excludedGroups>${test.excludedGroups}</excludedGroups>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

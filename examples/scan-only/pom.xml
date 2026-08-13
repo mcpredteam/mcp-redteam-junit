@@ -1,0 +1,111 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+      Deliberately standalone: no <parent>, and not listed in the modules of the library's root
+      pom. This project resolves io.github.mcpredteam from Maven Central exactly as your project
+      will, so nothing here can accidentally pass by picking up the library's own build output.
+    -->
+    <groupId>com.example</groupId>
+    <artifactId>notes-scan-example</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <name>MCP RedTeam example — scanning, no model required</name>
+    <description>
+        MCP security checks in CI for a team that has no agent: scan tool metadata, scan a live
+        MCP server, and catch a server that changed after you approved it. No model, no API key.
+    </description>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <mcp-redteam.version>0.1.0</mcp-redteam.version>
+        <mcp-sdk.version>2.0.0</mcp-sdk.version>
+        <junit.version>5.11.4</junit.version>
+    </properties>
+
+    <dependencies>
+        <!-- The assertions. Brings in mcp-redteam-core and junit-jupiter-api transitively. -->
+        <dependency>
+            <groupId>io.github.mcpredteam</groupId>
+            <artifactId>mcp-redteam-junit</artifactId>
+            <version>${mcp-redteam.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- The protocol client, for reading tools/list from a real server over stdio or
+             Streamable HTTP. Drop this and everything except OwnServerScanTest still works. -->
+        <dependency>
+            <groupId>io.github.mcpredteam</groupId>
+            <artifactId>mcp-redteam-mcp</artifactId>
+            <version>${mcp-redteam.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+          YOU MUST DECLARE THIS. mcp-redteam-mcp declares the MCP SDK as `provided` so that it
+          never overrides the version you have pinned — and `provided` dependencies are not
+          transitive, so supplying it is your job.
+
+          Leave it out and the build resolves fine; you get a NoClassDefFoundError when a test
+          runs. That is the trade for the library never fighting you over an SDK version.
+        -->
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp</artifactId>
+            <version>${mcp-sdk.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- The JUnit engine. The library ships only junit-jupiter-api, so that it cannot drag
+             your test runtime onto a version you did not choose. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+            </plugin>
+
+            <!--
+              Only so the baseline can be captured by hand:
+
+                mvn test-compile exec:exec
+
+              Capturing is a person's job — read the diff, then commit it. Nothing in the build
+              regenerates the file, because a check that re-baselines itself can never fail.
+
+              exec:exec rather than the shorter exec:java on purpose. exec:java runs inside
+              Maven's own JVM, where `java.class.path` is Maven's launcher classpath and not this
+              project's — so the MCP server subprocess NotesServers starts cannot find its main
+              class, and the failure arrives 30 seconds later as an MCP session timeout that
+              names nothing useful. Forking gets a real classpath.
+            -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <classpathScope>test</classpathScope>
+                    <executable>java</executable>
+                    <arguments>
+                        <argument>-classpath</argument>
+                        <classpath/>
+                        <argument>com.example.notes.CaptureBaseline</argument>
+                    </arguments>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
