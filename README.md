@@ -229,6 +229,11 @@ them. Empty placeholder modules are structure pretending to be architecture.
 - [Rules reference](docs/guide/rules.md) — every rule id, what trips it, and how to suppress it
 - [Troubleshooting](docs/guide/troubleshooting.md) — the errors people actually hit
 
+**Writeups**
+
+- [The payload decided the outcome, not the model](docs/blog/the-payload-decided-the-outcome.md) —
+  why a hijack test that only fires the caricatured payload is measuring the payload, not the agent
+
 **Design and background**
 
 - [Strategy](docs/strategy.md) — positioning, and what is honestly defensible about it

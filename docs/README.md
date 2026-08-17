@@ -15,6 +15,13 @@ Read in order if you are new:
 
 Runnable code for all of it lives in **[examples/](../examples)**.
 
+## Writeups
+
+- **[The payload decided the outcome, not the model](blog/the-payload-decided-the-outcome.md)** —
+  the caricatured `Ignore all previous instructions` payload every MCP demo uses scored 0/20
+  against a local model; a tool that merely declared an `apiKey` parameter scored 20/20. Why a
+  hijack test that only fires the caricature is measuring the payload, not the agent.
+
 ## Design and background
 
 These explain *why* the library is shaped the way it is. Not needed to use it.
