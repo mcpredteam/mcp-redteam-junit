@@ -10,6 +10,31 @@ patch. If that would turn your build red without warning, gate on
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-08-18
+
+### Added
+
+- **HTML reports.** `Reports.html(report).writeTo(path)` renders a scan as one self-contained
+  page: a severity band, the scan's provenance, then every finding ordered by risk. Meant to be
+  uploaded as a CI artifact and opened by a person — it references nothing outside itself, so it
+  works from `file://` and offline, and it carries no JavaScript. Parse
+  `Reports.json(...)` when something other than a human is reading.
+
+### Fixed
+
+- **Evidence keys no longer reorder between runs.** `Finding` stored its evidence with
+  `Map.copyOf`, whose iteration order is randomized per JVM, so any finding carrying two or more
+  evidence entries rendered them differently on every run. That broke the byte-identical
+  guarantee `Reports` makes and put spurious diffs into the pull requests these artifacts exist
+  to be reviewed in.
+
+  **On upgrade you will see a one-time reshuffle** of evidence keys in any committed `scan.json`.
+  Nothing changed but the order, which is now the order the rule wrote them in — matched text
+  first. Fingerprint baselines are unaffected.
+
+  Same-JVM tests could not have caught this: the salt is fixed for the life of a JVM, so
+  rendering twice in one test always agreed with itself.
+
 ## [0.1.0] — 2026-08-12
 
 First release. Everything below the "Added" line has existed for a while and is described in
@@ -43,5 +68,6 @@ First release. Everything below the "Added" line has existed for a while and is 
 - Two javadoc references and one heading level that broke the docs build, which blocked the
   javadoc jar Central requires.
 
-[Unreleased]: https://github.com/mcpredteam/mcp-redteam-junit/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/mcpredteam/mcp-redteam-junit/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/mcpredteam/mcp-redteam-junit/releases/tag/v0.2.0
 [0.1.0]: https://github.com/mcpredteam/mcp-redteam-junit/releases/tag/v0.1.0
