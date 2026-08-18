@@ -13,18 +13,19 @@ import java.util.Objects;
  *
  * Reports.json(report).writeTo(Path.of("target/mcp-redteam/scan.json"));
  * Reports.junitXml(report).writeTo(Path.of("target/mcp-redteam/scan-junit.xml"));
+ * Reports.html(report).writeTo(Path.of("target/mcp-redteam/scan.html"));
  *
  * assertThat(report).hasNoHighRiskFindings();     // the gate is still the assertion
  * }</pre>
  *
- * <p>Both formats take the report exactly as given and filter nothing. A report says what was
+ * <p>All three formats take the report exactly as given and filter nothing. A report says what was
  * found; deciding what counts is the gate's job, and a writer that quietly dropped everything
  * below some threshold would produce an artifact that disagreed with the test beside it. To
  * publish only what the gate acts on, say so where a reader can see it:
  * {@code Reports.json(report.filteredTo(Severity.HIGH, Confidence.FIRM))}.
  *
  * <p>Rendering the same {@code ScanReport} twice gives the same bytes. Rendering two scans of an
- * unchanged server differs only in the timestamps, which both formats keep in one place for
+ * unchanged server differs only in the timestamps, which every format keeps in one place for
  * exactly that reason.
  *
  * <p>This also covers dynamic results: {@code BehaviorScanner.scan(AgentRun)} returns a
@@ -52,6 +53,21 @@ public final class Reports {
     public static Report junitXml(ScanReport report) {
         Objects.requireNonNull(report, "report");
         return () -> JUnitXmlFormat.render(report);
+    }
+
+    /**
+     * A single self-contained HTML page, for a person rather than a parser.
+     *
+     * <p>The format to upload as a CI artifact and hand to someone: it opens in a browser from
+     * {@code file://} with no toolchain, no server and no network, because it references nothing
+     * outside itself and carries no script.
+     *
+     * <p>Lossy in the same way {@link #junitXml(ScanReport)} is — it renders findings for reading,
+     * it is not a wire format. Parse {@link #json(ScanReport)} instead.
+     */
+    public static Report html(ScanReport report) {
+        Objects.requireNonNull(report, "report");
+        return () -> HtmlFormat.render(report);
     }
 
     /**

@@ -291,8 +291,8 @@ tool in the scan, since a comparison that compared nothing must not pass quietly
 
 ## Reports — built
 
-JSON is canonical, then JUnit XML; SARIF and HTML remain later. Both live in `core.report`, which
-means both are available to a consumer who took only the static scanner.
+JSON is canonical, then JUnit XML, then HTML; SARIF remains later. All three live in
+`core.report`, which means all three are available to a consumer who took only the static scanner.
 
 ```java
 Reports.json(report).writeTo(Path.of("target/mcp-redteam/scan.json"));

@@ -107,8 +107,9 @@ final class JsonFormat {
                 .field("remediation", finding.remediation());
 
         json.startObject("evidence");
-        // Insertion order, not sorted: rules put the matched text first on purpose, and a
-        // LinkedHashMap built from the same input twice gives the same order anyway.
+        // Insertion order, not sorted: rules put the matched text first on purpose. Finding
+        // preserves that order rather than storing a Map.copyOf, which would reshuffle it on
+        // every JVM — see the note on its canonical constructor.
         for (Map.Entry<String, Object> entry : finding.evidence().entrySet()) {
             json.value(entry.getKey(), entry.getValue());
         }

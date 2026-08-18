@@ -37,7 +37,7 @@ Four dependencies. This is what most teams keep in CI.
 
 ```xml
 <properties>
-    <mcp-redteam.version>0.1.0</mcp-redteam.version>
+    <mcp-redteam.version>0.2.0</mcp-redteam.version>
     <mcp-sdk.version>2.0.0</mcp-sdk.version>
     <junit.version>5.11.4</junit.version>
 </properties>
@@ -155,14 +155,14 @@ Working copy: [`examples/agent/pom.xml`](../../examples/agent/pom.xml).
 
 ```kotlin
 dependencies {
-    testImplementation("io.github.mcpredteam:mcp-redteam-junit:0.1.0")
+    testImplementation("io.github.mcpredteam:mcp-redteam-junit:0.2.0")
 
     // Live-server scanning
-    testImplementation("io.github.mcpredteam:mcp-redteam-mcp:0.1.0")
+    testImplementation("io.github.mcpredteam:mcp-redteam-mcp:0.2.0")
     testImplementation("io.modelcontextprotocol.sdk:mcp:2.0.0")      // provided by you
 
     // Agent testing
-    testImplementation("io.github.mcpredteam:mcp-redteam-spring-ai:0.1.0")
+    testImplementation("io.github.mcpredteam:mcp-redteam-spring-ai:0.2.0")
     testImplementation("org.springframework.ai:spring-ai-client-chat:2.0.0")
     testImplementation("org.springframework.ai:spring-ai-ollama:2.0.0")
     testImplementation("org.springframework.ai:spring-ai-mcp:2.0.0")
@@ -228,7 +228,7 @@ that ran nothing; and PowerShell mangles a `-D` argument containing a dot or end
 
 ## Published artifacts
 
-All under `io.github.mcpredteam`, version `0.1.0`, on
+All under `io.github.mcpredteam`, version `0.2.0`, on
 [Maven Central](https://central.sonatype.com/namespace/io.github.mcpredteam):
 `mcp-redteam-parent`, `mcp-redteam-core`, `mcp-redteam-junit`, `mcp-redteam-mcp`,
 `mcp-redteam-spring-ai`.

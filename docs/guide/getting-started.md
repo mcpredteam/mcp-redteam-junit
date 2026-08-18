@@ -15,7 +15,7 @@ your build when a connected server publishes poisoned tool metadata.
 <dependency>
     <groupId>io.github.mcpredteam</groupId>
     <artifactId>mcp-redteam-junit</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
     <scope>test</scope>
 </dependency>
 
@@ -187,7 +187,8 @@ case that fails in that state, and the dynamic side raises `MCPRT-RUN-001`.
 
 ## Versioning and stability
 
-`0.1.0` is the first release. Before 1.0 the public API may break in a minor release.
+`0.2.0` is current; `0.1.0` was the first release. Before 1.0 the public API may break in a
+minor release.
 
 Detection rules are treated differently: a rule that starts catching something it used to miss is
 a *fix*, not a break, and can land in a patch release. If a new rule turning your build red

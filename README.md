@@ -12,6 +12,11 @@ Tool poisoning, schema poisoning, tool shadowing, rug pulls and canary exfiltrat
 **[Runnable examples](examples)** ·
 **[Documentation](docs)**
 
+![A scan report listing 3 critical, 13 high and 2 medium findings across 8 MCP tools. The first finding, MCPRT-INJ-001, is a tool description that instructs the agent to ignore its previous instructions, hidden with invisible characters and matched after normalization.](docs/assets/sample-scan.png)
+
+Every scan can write that page next to the JSON and JUnit XML —
+`Reports.html(report).writeTo(...)`. One self-contained file, no model, no API key, no network.
+
 ---
 
 ## Install
@@ -22,7 +27,7 @@ Requires **JDK 21+**, **JUnit 5**, and Maven or Gradle.
 <dependency>
     <groupId>io.github.mcpredteam</groupId>
     <artifactId>mcp-redteam-junit</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
     <scope>test</scope>
 </dependency>
 
@@ -192,7 +197,7 @@ no tool. 364 tests, green with no network beyond loopback and no API key.
 | Dynamic Spring AI agent-in-the-loop harness | **Working** — Spring AI 2.0, `ToolCallback` recording |
 | Tool-trust policy (the remediation half) | **Working** |
 | Multi-trial hijack *rate* measurement | **Working** — `runTrials` + `TrialReport` |
-| JSON and JUnit XML reports | **Working** — same schema for static and dynamic findings |
+| JSON, HTML and JUnit XML reports | **Working** — same schema for static and dynamic findings |
 | Intermediate assistant turns | **Not captured** — Spring AI exposes no per-iteration text |
 | Tool annotations on the Spring path | **Not available** — scan over `McpServerConnection` instead |
 | SSE transport | **Not built** — deprecated in the MCP spec |
@@ -225,7 +230,7 @@ them. Empty placeholder modules are structure pretending to be architecture.
 - [Scanning a live server](docs/guide/scanning-a-live-server.md) — stdio and Streamable HTTP
 - [Catching a rug pull](docs/guide/rug-pull.md) — baselines and drift detection
 - [Testing an agent](docs/guide/agent-testing.md) — the Spring AI harness, canaries, trust policies
-- [Reports](docs/guide/reports.md) — JSON and JUnit XML artifacts
+- [Reports](docs/guide/reports.md) — JSON, HTML and JUnit XML artifacts
 - [Rules reference](docs/guide/rules.md) — every rule id, what trips it, and how to suppress it
 - [Troubleshooting](docs/guide/troubleshooting.md) — the errors people actually hit
 
@@ -244,14 +249,15 @@ them. Empty placeholder modules are structure pretending to be architecture.
 
 ## Versioning
 
-`0.1.0` is the first release. Before 1.0 the public API may break in a minor release. Detection
+`0.2.0` is current; `0.1.0` was the first release. Before 1.0 the public API may break in a minor
+release. Detection
 rules are a different matter: a rule that starts catching something it used to miss is a fix, not
 a break, and will land in a patch. If that would turn your build red without warning, gate on
 `hasNoFindingsAtOrAbove(...)` with an explicit severity rather than on a finding count.
 
 See [CHANGELOG.md](CHANGELOG.md).
 
-**Next:** JUnit 6 support, then a LangChain4j harness. SARIF and a CLI are deliberately later. The
+**Next:** a LangChain4j harness. SARIF and a CLI are deliberately later. The
 observation model is framework-agnostic, so a second harness only has to produce observations and
 inherits every detector. Issues and milestones carry the current state.
 

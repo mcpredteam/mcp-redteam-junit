@@ -8,6 +8,7 @@ looked like when it was approved.
 ScanReport report = vendor.scan();
 
 Reports.json(report).writeTo(Path.of("target/mcp-redteam/scan.json"));
+Reports.html(report).writeTo(Path.of("target/mcp-redteam/scan.html"));
 Reports.junitXml(report).writeTo(Path.of("target/mcp-redteam/scan-junit.xml"));
 
 assertThat(report).hasNoFindingsAtOrAbove(Severity.HIGH);   // the gate is still the assertion
@@ -47,6 +48,34 @@ failure message and a spurious diff in a file: two findings from one rule agains
 per poisoned parameter, compared equal and sorted arbitrarily. Location and dedupe-key tiebreakers
 settle it.
 
+## HTML is for people
+
+The format to upload from CI and hand to someone. A severity band, the scan's provenance, then
+every finding in the same risk order as the JSON — legible without a JSON viewer or a Java
+toolchain.
+
+![A scan report listing 3 critical, 13 high and 2 medium findings across 8 MCP tools, with the first finding showing a tool description that instructs the agent to ignore its previous instructions.](../assets/sample-scan.png)
+
+Three properties are worth knowing about, because each is a security choice rather than a
+styling one:
+
+- **One file, referencing nothing.** No CDN stylesheet, no web font, no remote image. A report
+  that fetched a resource in order to display itself would be making an outbound request from a
+  machine that has just been told one of its dependencies is hostile — and it would render wrong
+  offline, which is where build artifacts are usually read.
+- **No JavaScript.** Nothing on the page needs it, artifact viewers commonly strip it, and a page
+  that renders attacker-controlled strings should not also carry a script for them to land in.
+- **An empty-scan banner**, for the same reason the JUnit XML suite carries a `scan executed`
+  case. Zero tools scanned produces zero findings, which would otherwise render as a reassuring
+  page with an empty list.
+
+Lossy, like the JUnit XML. Parse `Reports.json(...)` when the reader is not a person.
+
+> The page renders the attacker's URLs, payloads and control characters as **text**, never as
+> anything the browser acts on — no link is ever built from scanned content. Those strings are
+> the evidence for the finding reporting them, so they have to be visible, and they must not be
+> live.
+
 ## JUnit XML is for build UIs
 
 Deliberately lossy — it carries the rendered failure text, not the structured evidence. Each
@@ -73,8 +102,8 @@ a build that dies parsing its own report, with an error naming the wrong problem
 Illegal code points are rendered as visible `\uXXXX` rather than dropped. Dropping is how a payload
 disappears from the evidence for itself. Escaping is lossless — a parser gives the character back.
 
-Both formats do this. A zero-width space written raw into a report renders as nothing in the pull
-request reviewing it, which is exactly the property the attacker picked it for.
+All three formats do this. A zero-width space written raw into a report renders as nothing in the
+pull request reviewing it, which is exactly the property the attacker picked it for.
 
 ## Rates as an artifact
 
