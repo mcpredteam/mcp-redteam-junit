@@ -1,5 +1,6 @@
 package io.github.mcpredteam.core;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -27,7 +28,15 @@ public record Finding(
         Objects.requireNonNull(threatType, "threatType");
         Objects.requireNonNull(severity, "severity");
         Objects.requireNonNull(confidence, "confidence");
-        evidence = evidence == null ? Map.of() : Map.copyOf(evidence);
+        // Insertion order is preserved deliberately, and Map.copyOf cannot be used here.
+        // Its iteration order is randomized per JVM by ImmutableCollections.SALT, so two runs
+        // of the same scan would write their evidence in different orders — which silently
+        // breaks the byte-identical guarantee Reports makes, and shows up as a spurious diff
+        // on an unchanged finding in the pull request the artifact exists to be reviewed in.
+        // Same-JVM tests cannot catch that, because the salt is fixed for the life of a JVM.
+        evidence = evidence == null
+                ? Map.of()
+                : Collections.unmodifiableMap(new LinkedHashMap<>(evidence));
     }
 
     /** Identity for de-duplication: the same rule firing at the same place is one finding. */

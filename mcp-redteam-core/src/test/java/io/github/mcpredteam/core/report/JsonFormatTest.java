@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -346,5 +347,41 @@ class JsonFormatTest {
 
         assertEquals("value", evidence.get("depth").get("nested").asString());
         assertEquals(Instant.EPOCH.toString(), evidence.get("when").asString());
+    }
+
+    /**
+     * Evidence keys come out in the order the rule added them.
+     *
+     * <p>This is the only shape of test that can catch the bug it was written for. {@code
+     * Reports} promises that rendering the same scan twice gives the same bytes, and the obvious
+     * test — render twice, compare — <em>passes even when the promise is broken</em>, because
+     * {@code ImmutableCollections.SALT} is drawn once per JVM and every render inside one test
+     * run therefore agrees with itself. The reordering only appears on the next JVM, which is to
+     * say in the pull request diffing yesterday's artifact against today's.
+     *
+     * <p>So the invariant asserted here is insertion order rather than self-consistency. Six keys
+     * makes an accidental pass a 1-in-720 coincidence if {@code Finding} ever goes back to
+     * {@code Map.copyOf}.
+     */
+    @Test
+    void evidenceKeepsTheOrderTheRuleWroteItIn() {
+        List<String> order = List.of("match", "rule", "where", "extra", "note", "excerpt");
+
+        Finding.Builder builder = Finding.builder("MCPRT-INJ-001")
+                .threatType(ThreatType.TOOL_POISONING)
+                .severity(Severity.HIGH)
+                .confidence(Confidence.FIRM)
+                .target("evil/tool")
+                .message("payload");
+        order.forEach(key -> builder.evidence(key, "v"));
+        Finding finding = builder.build();
+
+        assertEquals(order, List.copyOf(finding.evidence().keySet()),
+                "Finding must preserve the order a rule wrote its evidence in");
+
+        List<String> rendered = new ArrayList<>();
+        parse(reportOf(finding)).get("findings").get(0).get("evidence").propertyNames()
+                .forEach(rendered::add);
+        assertEquals(order, rendered, "the rendered artifact must follow the same order");
     }
 }
