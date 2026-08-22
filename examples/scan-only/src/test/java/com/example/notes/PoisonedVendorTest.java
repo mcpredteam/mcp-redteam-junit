@@ -3,9 +3,11 @@ package com.example.notes;
 import io.github.mcpredteam.core.MetadataScanner;
 import io.github.mcpredteam.core.ScanReport;
 import io.github.mcpredteam.core.ToolDefinition;
+import io.github.mcpredteam.core.report.Reports;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -73,5 +75,12 @@ class PoisonedVendorTest {
         System.out.println("=== what a failing build looks like ===");
         System.out.println(failure.getMessage());
         System.out.println("======================================");
+
+        // The same failure as a page you can open. LiveServerScanTest writes one too, but that
+        // server is clean by construction, so its report is an empty list — correct, and not
+        // much to look at. This is the one worth opening after running the example.
+        Path page = Path.of("target/mcp-redteam/poisoned-vendor.html");
+        Reports.html(report).writeTo(page);
+        System.out.println("report: " + page.toAbsolutePath());
     }
 }
