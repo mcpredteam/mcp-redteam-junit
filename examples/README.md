@@ -30,13 +30,17 @@ Twelve tests, green. What they show, in the order worth reading them:
 | Test | What it demonstrates |
 | --- | --- |
 | `OwnServerScanTest` | The CI gate: scan your tool metadata, fail on high-risk findings. Also asserts the scanner stays *quiet* on honest tools that say "base64" and "delete" — a scanner that cries wolf gets muted. |
-| `PoisonedVendorTest` | Your server is fine; a vendor's is not. Prints the real failure message a developer would see in CI. |
-| `LiveServerScanTest` | The same scan against a **real MCP server process** over stdio, plus writing JSON and JUnit XML reports. |
+| `PoisonedVendorTest` | Your server is fine; a vendor's is not. Prints the real failure message a developer would see in CI, and writes the same findings as a page you can open. |
+| `LiveServerScanTest` | The same scan against a **real MCP server process** over stdio, plus writing JSON, HTML and JUnit XML reports. |
 | `ServerDriftTest` | Rug pull: the server changed after you approved it. Catches a new unreviewed tool, a poisoned edit, and a harmless reword. |
 
 Two of the tests deliberately trigger failures and print the message instead of letting it break
 the build, so the run stays green while showing you what a real failure looks like. Do not copy
 that pattern into your own suite — there, you want the gate to fail.
+
+After the run, open **`scan-only/target/mcp-redteam/poisoned-vendor.html`** — the findings above
+as a page. `LiveServerScanTest` writes one as well, at `scan.html`, but that server is clean by
+construction, so its report is an empty list: correct, and not much to look at.
 
 ### Re-capturing the baseline
 

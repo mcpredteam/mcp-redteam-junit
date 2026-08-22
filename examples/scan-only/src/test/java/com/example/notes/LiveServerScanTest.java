@@ -80,11 +80,15 @@ class LiveServerScanTest {
      * reviewer on the pull request and for the person asking in six months what this server
      * looked like when it was approved.
      *
+     * <p>Three formats, one scan. JSON is canonical and the one to parse; HTML is the one to
+     * open or hand to somebody; JUnit XML is for a CI system that already knows how to display
+     * test results. Writing any of them gates nothing — the assertion below is still the gate.
+     *
      * <p>Written under {@code target/}, never into the repository — a report can quote a
      * poisoned description verbatim.
      */
     @Test
-    @DisplayName("a scan writes JSON and JUnit XML artifacts")
+    @DisplayName("a scan writes JSON, HTML and JUnit XML artifacts")
     void scanWritesReports() {
         try (McpServerConnection notes = McpServerConnection.connect("notes", NotesServers.notes())) {
 
@@ -92,6 +96,11 @@ class LiveServerScanTest {
 
             Reports.json(report).writeTo(Path.of("target/mcp-redteam/scan.json"));
             Reports.junitXml(report).writeTo(Path.of("target/mcp-redteam/scan-junit.xml"));
+
+            // Open this one in a browser. It is a single self-contained file with no script and
+            // no external references, which is what makes it safe to upload as a CI artifact and
+            // send to someone: displaying the findings never makes a request.
+            Reports.html(report).writeTo(Path.of("target/mcp-redteam/scan.html"));
 
             // Writing a report never gates anything. The assertion is still the gate.
             assertThat(report).hasNoFindingsAtOrAbove(Severity.HIGH);
