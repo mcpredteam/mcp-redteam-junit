@@ -185,7 +185,7 @@ scanner that cries wolf, and then it is not there when a real poisoned tool arri
 ## Status
 
 Honest state of the project, because a security tool that overstates its coverage is worse than
-no tool. 364 tests, green with no network beyond loopback and no API key.
+no tool. 381 tests, green with no network beyond loopback and no API key.
 
 | Capability | State |
 | --- | --- |
