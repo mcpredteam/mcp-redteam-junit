@@ -79,7 +79,7 @@ jobs:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
 
-      # Runs the full build, including the 364 tests, before anything is uploaded. Tests tagged
+      # Runs the full build, tests included, before anything is uploaded. Tests tagged
       # `live` stay excluded — they need a model provider and cost money.
       - name: Build, test and publish
         run: mvn -B --no-transfer-progress -Prelease deploy
