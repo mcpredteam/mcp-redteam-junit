@@ -54,7 +54,7 @@
         <junit.version>5.11.4</junit.version>
         <surefire.version>3.5.2</surefire.version>
         <spring-ai.version>2.0.0</spring-ai.version>
-        <jackson.version>3.1.4</jackson.version>
+        <jackson.version>3.2.1</jackson.version>
         <!--
           Pinned here rather than inherited: spring-ai-bom does not manage the MCP SDK, it only
           depends on it. Left unpinned, the fixture servers would drift onto whatever version
