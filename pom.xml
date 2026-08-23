@@ -68,7 +68,7 @@
           client works needs a container; running one on loopback keeps that proof in CI instead
           of behind a network-dependent tag. Never leaves test scope, so no consumer sees it.
         -->
-        <jetty.version>12.0.16</jetty.version>
+        <jetty.version>12.1.12</jetty.version>
         <!-- Indirected because a literal in the plugin's <configuration> cannot be overridden
              from the command line: POM configuration beats -D, so -DexcludedGroups= is silently
              ignored and the tests it was meant to enable simply do not run. -->
