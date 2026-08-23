@@ -12,6 +12,33 @@ Tool poisoning, schema poisoning, tool shadowing, rug pulls and canary exfiltrat
 **[Runnable examples](examples)** ·
 **[Documentation](docs)**
 
+```mermaid
+flowchart LR
+  I1["A tool list you<br/>already hold"]:::src
+  I2["A live MCP server<br/>tools/list"]:::src
+  I3["A real agent run<br/>optional — needs a model<br/>and an API key"]:::opt
+
+  CORE["mcp-redteam<br/>reads the descriptions<br/>your model reads —<br/>and you never see<br/><br/>7 rule families · no API key"]:::core
+
+  F["Findings<br/>CRITICAL · HIGH · MEDIUM"]:::find
+  R["mvn test fails<br/>names the tool and the fix"]:::bad
+  G["A report to share<br/>HTML · JSON · JUnit XML"]:::ok
+
+  I1 --> CORE
+  I2 --> CORE
+  I3 -.-> F
+  CORE --> F
+  F --> R
+  F --> G
+
+  classDef src  fill:#161b24,stroke:#2c3444,color:#e7eaf1
+  classDef opt  fill:#161b24,stroke:#5b4b8a,color:#c9c2e8,stroke-dasharray:5 4
+  classDef core fill:#1b2242,stroke:#4f46e5,color:#c7cfff,stroke-width:2px
+  classDef find fill:#2a1f12,stroke:#b07a2c,color:#e2a05c,stroke-width:2px
+  classDef bad  fill:#2a1719,stroke:#b3413c,color:#f0817c,stroke-width:2px
+  classDef ok   fill:#12271f,stroke:#2c8f6b,color:#54c99c,stroke-width:2px
+```
+
 ![A scan report listing 3 critical, 13 high and 2 medium findings across 8 MCP tools. The first finding, MCPRT-INJ-001, is a tool description that instructs the agent to ignore its previous instructions, hidden with invisible characters and matched after normalization.](docs/assets/sample-scan.png)
 
 Every scan can write that page next to the JSON and JUnit XML —
